@@ -21,6 +21,12 @@ app.post("/api/sandbox/start", async (req,res)=>{
         createPods(sandboxId),
         createService(sandboxId)
     ])
-})
+
+    return res.status(200).json({
+        message: "Sandbox started successfully!",
+        sandboxId,
+        previewUrl: `http://${sandboxId}.preview.localhost`
+    });
+});
 
 export default app;
