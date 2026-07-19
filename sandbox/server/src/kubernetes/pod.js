@@ -28,4 +28,11 @@ export async function createPods(sandboxId) {
                 }
         }]
         }
-    }};
+    }
+    
+    const response = await k8sCoreV1Api.createNamespacedPod({
+        namespace:'default',
+        body: podManifest
+    });
+    return response;
+};
