@@ -15,7 +15,7 @@ spec:
         name:  router
     spec:
       containers:
-      - image:  ipedrazas/docmock
+      - image:  router:latest
         name:  router-server
         resources:
           requests:
