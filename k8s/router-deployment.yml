@@ -6,16 +6,16 @@ metadata:
     name:  router-deployment
 spec:
   replicas: 1
-  selector: 
+  selector:
     matchLabels:
-      app:  router
+      app: router
   template:
     metadata:
       labels:
         app:  router
     spec:
       containers:
-      - image:  router:latest
+      - image:  router:latest 
         name:  router-server
         resources:
           requests:
@@ -26,16 +26,16 @@ spec:
             memory: "500M"
         livenessProbe:
           httpGet:
-            path: /api/router/health
+            path: /api/status/healthz
             port: 3000
           initialDelaySeconds: 90
           timeoutSeconds: 10
         readinessProbe:
           httpGet:
-            path: /api/router/ready
+            path: /api/status/readyz
             port: 3000
           initialDelaySeconds: 30
-          timeoutSeconds: 10    
+          timeoutSeconds: 10
         ports:
         - containerPort:  3000
-          name:  main-router
+          name:  my-name
