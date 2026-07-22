@@ -50,7 +50,7 @@ app.use((req, res, next) => {
     const targetUrl = `http://sandbox-service-${sandboxId}`; // Construct the target URL based on the sandbox ID
 
     if (host.split('.')[1] === 'agent'){
-
+        return getAgentProxy(sandboxId) (req,res,next)
     } else if (host.split('.')[1] === 'preview'){
         return getProxy(sandboxId) (req,res,next);
     }
