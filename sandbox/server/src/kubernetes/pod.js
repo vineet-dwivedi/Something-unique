@@ -30,7 +30,13 @@ export async function createPods(sandboxId) {
                         requests: {
                             cpu: "250m",
                             memory: "500Mi"
-                        }
+                        },
+                        volumeMounts: [
+                            {
+                                name: "workspace_volume",
+                                mountPath: "/workspace"
+                            }
+                        ]
                     }
                 },{
                     image: "agent",
@@ -45,7 +51,13 @@ export async function createPods(sandboxId) {
                         requests: {
                             cpu: "250m",
                             memory: "500Mi"
-                        }
+                        },
+                        volumeMounts: [
+                            {
+                                name: "workspace_volume",
+                                mountPath: "/workspace"
+                            }
+                        ]
                     }
                 }   
             ]
