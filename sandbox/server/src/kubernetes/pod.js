@@ -36,6 +36,12 @@ export async function createPods(sandboxId) {
                     imagePullPolicy: "IfNotPresent",
                     name: "sandbox-container",
                     ports: [{ containerPort: 5173, name: "http" }],
+                    volumeMounts: [
+                        {
+                            name: "workspace-volume",
+                            mountPath: "/workspace"
+                        }
+                    ],
                     resources: {
                         limits: {
                             cpu: "500m",
@@ -44,19 +50,19 @@ export async function createPods(sandboxId) {
                         requests: {
                             cpu: "250m",
                             memory: "500Mi"
-                        },
-                        volumeMounts: [
-                            {
-                                name: "workspace-volume",
-                                mountPath: "/workspace"
-                            }
-                        ]
+                        }
                     }
                 },{
                     image: "agent",
                     imagePullPolicy: "IfNotPresent",
                     name: "agent-container",
                     ports: [{containerPort: 3000, name: "http"}],
+                    volumeMounts: [
+                        {
+                            name: "workspace-volume",
+                            mountPath: "/workspace"
+                        }
+                    ],
                     resources: {
                         limits: {
                             cpu: "500m",
@@ -65,13 +71,7 @@ export async function createPods(sandboxId) {
                         requests: {
                             cpu: "250m",
                             memory: "500Mi"
-                        },
-                        volumeMounts: [
-                            {
-                                name: "workspace-volume",
-                                mountPath: "/workspace"
-                            }
-                        ]
+                        }
                     }
                 }   
             ]

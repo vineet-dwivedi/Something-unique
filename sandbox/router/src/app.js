@@ -24,7 +24,22 @@ function getProxy(sandboxId){
         proxies[sandboxId] = createProxyMiddleware({
             target,
             changeOrigin: true,
-            ws: true
+            ws: true,
+            timeout: 5000,
+            proxyTimeout: 5000,
+            on: {
+                error: (err, req, res) => {
+                    if (!res.headersSent) {
+                        res.status(502);
+                        res.setHeader("Content-Type", "application/json");
+                    }
+
+                    res.end(JSON.stringify({
+                        message: "Sandbox preview backend is unavailable",
+                        error: err.message
+                    }));
+                }
+            }
         })
     }
     return proxies[sandboxId]
@@ -38,7 +53,22 @@ function getAgentProxy(sandboxId){
         agentProxies[sandboxId] = createProxyMiddleware({
             target,
             changeOrigin: true,
-            ws: true
+            ws: true,
+            timeout: 5000,
+            proxyTimeout: 5000,
+            on: {
+                error: (err, req, res) => {
+                    if (!res.headersSent) {
+                        res.status(502);
+                        res.setHeader("Content-Type", "application/json");
+                    }
+
+                    res.end(JSON.stringify({
+                        message: "Sandbox agent backend is unavailable",
+                        error: err.message
+                    }));
+                }
+            }
         })
     }
     return agentProxies[sandboxId]
@@ -54,6 +84,11 @@ app.use((req, res, next) => {
     } else if (host.split('.')[1] === 'preview'){
         return getProxy(sandboxId) (req,res,next);
     }
+
+    return res.status(404).json({
+        message: "Unsupported host",
+        host
+    });
 })
 
 export default app;
