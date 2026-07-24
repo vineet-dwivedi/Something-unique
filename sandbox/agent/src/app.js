@@ -10,6 +10,10 @@ const app = express();
 app.use(morgan('dev'));
 app.use(cors())
 
+/**
+ * @route GET /
+ * @description health check endpoint for the agent service.
+ */
 app.get('/',(req,res)=>{
     res.status(200).json({
         message: "Hello world",
@@ -17,15 +21,25 @@ app.get('/',(req,res)=>{
     })
 })
 
+/**
+ * @route GET /list-files
+ * @description lists all files and folders in the working directory. Returns a JSON object with the top-level entries in the workspace.
+ * - eg, {
+ *    "message": "Elements in working directory",
+ *    "elements": ["file1.txt", "src", "README.md"]
+ * }
+ */
 app.get("/list-files",async (req,res) => {
-    const elements = await fs.promises.readdir(WORKING_DIR)
-
-    res.status(200).json({
-        message: 'Elements in working directory',
-        elements
-    })
+    const listFiles = async (dir,baseDir) =>{
+        const ent
+    }
 })
 
+/**
+ * @route GET /read-files
+ * @description reads one or more files passed through the query string and returns their contents.
+ * - eg, /read-files?files=file1.txt,src/file2.txt
+ */
 app.get("/read-files",async (req,res)=>{
     const files = req.query.files;
 
@@ -58,7 +72,17 @@ app.get("/read-files",async (req,res)=>{
     })
 })
 
-app.get("/update-files", async (req,res)=>{
+/**
+ * @route PATCH /update-files
+ * @description updates existing files with the provided content payload.
+ * - eg, {
+ *    "updates": [
+ *      { "file": "file1.txt", "content": "new content" },
+ *      { "file": "src/file2.txt", "content": "updated content" }
+ *    ]
+ * }
+ */
+app.patch("/update-files", async (req,res)=>{
     const updates = req.body;
 
     if(!updates || !Array.isArray(updates)){
@@ -88,6 +112,42 @@ app.get("/update-files", async (req,res)=>{
     })}
 
     
+})
+
+/**
+ * @route POST /create-files
+ * @description creates new files from the request body payload.
+ * - eg, {
+ *    "files": [
+ *      { "file": "file1.txt", "content": "hello" },
+ *      { "file": "src/file2.txt", "content": "world" }
+ *    ]
+ * }
+ */
+app.post("/create-files", async (req,res)=>{
+    const files = req.body.files;
+
+    if(!files || !Array.isArray(files)){
+        return res.status(400).json({
+            message: 'Invalid request body. Expected a JSON object with a "files" property.',
+            status: 'error'
+        });
+    }
+
+    const results = await Promise.all(files.map(async (fileObj) =>{
+        const {file,content} = fileObj;
+        const filePath = path.join(WORKING_DIR, file);
+        try{
+            await fs.promises.writeFile(filePath, content, 'utf-8');
+            return {
+                [filePath]: 'File created successfully',
+            }
+        } catch (err) {
+            return {
+                [filePath]: `Error creating file: ${err.message}`,
+            }
+        }
+    }))
 })
 
 export default app;
