@@ -2,6 +2,7 @@ import express from "express";
 import morgan from "morgan";
 import fs from "fs";
 import cors from "cors";
+import path from "path";
 
 const WORKING_DIR = '/workspace' 
 
@@ -25,7 +26,7 @@ app.get("/list-files",async (req,res) => {
     })
 })
 
-app.get("read-files",async (req,res)=>{
+app.get("/read-files",async (req,res)=>{
     const files = req.query.files;
 
     if(!files) {
@@ -55,6 +56,38 @@ app.get("read-files",async (req,res)=>{
         message: 'File contents',
         files: results
     })
+})
+
+app.get("/update-files", async (req,res)=>{
+    const updates = req.body;
+
+    if(!updates || !Array.isArray(updates)){
+        return res.status(400).json({
+            message: 'Invaild request body. Expected a JSON object with an "updates" property containing an array of file updates.',
+            status: 'error'
+        });
+
+        const results = await Promise.all(updates.map(async (update) => {
+            const {file,content} = update;
+            const filePath = path.join(WORKING_DIR,file);
+            try {
+                await fs.promises.writeFile(filePath,content,'utf-8');
+                return {
+                    [filePath]: 'File updated sucessfuly',
+                }
+            }catch (err){
+                return {
+                    [filePath]: `Error updating file: ${err.message}`,
+             }
+          }
+    }));
+
+    res.status(200).json({
+        message: "File update results",
+        results
+    })}
+
+    
 })
 
 export default app;
