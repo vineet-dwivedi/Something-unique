@@ -31,8 +31,32 @@ app.get('/',(req,res)=>{
  */
 app.get("/list-files",async (req,res) => {
     const listFiles = async (dir,baseDir) =>{
-        const ent
+        const entries = await fs.promises.readdir(dir, {withFileTypes: true});
+
+        const files = await Promise.all(entries.map(async (entry) => {
+            const fullPath = path.join(dir, entry.name);
+            if(entry.isDirectory()){
+                return await listFiles(fullPath,baseDir);
+            }else{
+                return path.relative(baseDir,fullPath);
+            }
+        }));
+        return files.flat();
     }
+    
+    try{
+        const files = await listFiles(WORKING_DIR,WORKING_DIR);
+        res.status(200).json({
+            message: 'Files in working directory',
+            files,
+        })
+    } catch (err){
+        res.status(500).json({
+            message: `Error listing files ${err.message}`,
+            status: 'error'
+        })
+    }
+
 })
 
 /**
