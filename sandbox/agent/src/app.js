@@ -183,6 +183,11 @@ app.post("/create-files", async (req,res)=>{
             }
         }
     }))
+
+    res.status(200).json({
+        message: 'File creation results',
+        results,
+    });
 })
 
 export default app;
