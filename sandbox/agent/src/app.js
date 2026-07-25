@@ -88,15 +88,15 @@ app.get("/read-files",async (req,res)=>{
     const fileList = files.split(',');
 
     const results = await Promise.all(fileList.map(async (file) => {
-        const filePath = `${WORKING_DIR}/$(file)`;
+        const filePath = path.join(WORKING_DIR, file);
         try{
             const content = await fs.promises.readFile(filePath, 'utf-8');
             return {
-                [filePath]: content,
+                [filePath.replace(WORKING_DIR, '')]: content,
             }
         } catch (err){
             return {
-                [filePath]: `Error reading file: ${err.message}`,
+                [filePath.replace(WORKING_DIR, '')]: `Error reading file: ${err.message}`,
             }
         }
     }));
@@ -130,6 +130,7 @@ app.patch("/update-files", async (req,res)=>{
             const {file,content} = update;
             const filePath = path.join(WORKING_DIR,file);
             try {
+                await fs.promises.mkdir(path.dirname(filePath), {recursive: true});
                 await fs.promises.writeFile(filePath,content,'utf-8');
                 return {
                     [filePath]: 'File updated sucessfuly',
@@ -173,6 +174,7 @@ app.post("/create-files", async (req,res)=>{
         const {file,content} = fileObj;
         const filePath = path.join(WORKING_DIR, file);
         try{
+            await fs.promises.mkdir(path.dirname(filePath), {recursive: true});
             await fs.promises.writeFile(filePath, content, 'utf-8');
             return {
                 [filePath]: 'File created successfully',
