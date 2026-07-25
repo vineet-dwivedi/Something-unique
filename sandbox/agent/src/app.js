@@ -117,38 +117,48 @@ app.get("/read-files",async (req,res)=>{
  *    ]
  * }
  */
-app.patch("/update-files", async (req,res)=>{
-    const updates = req.body;
+app.patch("/update-files", async (req, res) => {
+    // 1. Destructure "updates" from req.body
+    const { updates } = req.body;
 
-    if(!updates || !Array.isArray(updates)){
+    // 2. Validate that "updates" exists and IS an array
+    if (!updates || !Array.isArray(updates)) {
         return res.status(400).json({
-            message: 'Invaild request body. Expected a JSON object with an "updates" property containing an array of file updates.',
+            message: 'Invalid request body. Expected a JSON object with an "updates" property containing an array of file updates.',
             status: 'error'
         });
+    } // <-- Close the if statement HERE!
 
+    // 3. Process the file updates
+    try {
         const results = await Promise.all(updates.map(async (update) => {
-            const {file,content} = update;
-            const filePath = path.join(WORKING_DIR,file);
+            const { file, content } = update;
+            const filePath = path.join(WORKING_DIR, file);
+
             try {
-                await fs.promises.mkdir(path.dirname(filePath), {recursive: true});
-                await fs.promises.writeFile(filePath,content,'utf-8');
+                await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+                await fs.promises.writeFile(filePath, content, 'utf-8');
                 return {
-                    [filePath]: 'File updated sucessfuly',
-                }
-            }catch (err){
+                    [filePath]: 'File updated successfully',
+                };
+            } catch (err) {
                 return {
                     [filePath]: `Error updating file: ${err.message}`,
-             }
-          }
-    }));
+                };
+            }
+        }));
 
-    res.status(200).json({
-        message: "File update results",
-        results
-    })}
-
-    
-})
+        res.status(200).json({
+            message: "File update results",
+            results
+        });
+    } catch (err) {
+        res.status(500).json({
+            message: "Internal server error",
+            error: err.message
+        });
+    }
+});
 
 /**
  * @route POST /create-files
