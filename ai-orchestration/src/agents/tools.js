@@ -3,67 +3,65 @@ import {tool} from "langchain";
 import * as z from "zod";
 
 export const listFiles = tool(async () => {
-
-    console.log("======================");
-    console.log("Using File List Tool");
-    console.log("======================");
+    console.log("[list-files] requesting directory listing");
     
     const response = await axios.get("http://019f9d83-c5d0-77d8-895d-511838a6df0d.agent.localhost/list-files");
-
-    console.log("======================");
-    console.log("Response from list files tool", response.data);
-    console.log("======================");
 
     return response.data.files;
 },{
     name: "list-files",
-    description: "List all files in the project directory. This is useful for understanding what files are available to work with.",
+    description: "List all files in the project directory. Use the relative paths it returns when reading or updating files.",
     schema: z.object({})
 })
 
 export const readFiles = tool(async ({ files }) => {
-
-    console.log("======================");
-    console.log("Using File List Tool");
-    console.log("======================");
+    console.log("[read-files] requesting:", files.join(", "));
 
     const response = await axios.get(
         "http://019f9d83-c5d0-77d8-895d-511838a6df0d.agent.localhost/read-files/?files=" +
         encodeURIComponent(files.join(","))
     );
 
-    console.log("======================");
-    console.log("Response from read files tool.", response.data);
-    console.log("======================");
-
-    return JSON.stringify(response.data);
+    return response.data;
 },{
     name: "read-files",
-    description: "Read the content of specified files. This is useful for understanding the content of files that are relevant to the task at hand",
+    description: "Read the content of specified files using the relative paths returned by list-files.",
     schema: z.object({
         files: z.array(z.string().describe("The list files to read. These shouuld be files that were listed using the list-file tools or created later"))
     })
 })
 export const updateFiles = tool(async ({ file, content }) => {
-    
-    console.log("======================");
-    console.log("Using File List Tool");
-    console.log("======================");
+    console.log("[update-files] writing:", file);
 
-    const response = await axios.post("http://019f9d83-c5d0-77d8-895d-511838a6df0d.agent.localhost/update-files",{
+    const response = await axios.patch("http://019f9d83-c5d0-77d8-895d-511838a6df0d.agent.localhost/update-files",{
         updates: [{ file, content }]
     })
 
-    console.log("======================");
-    console.log("Response from update files tool.", response.data);
-    console.log("======================");
-
-    return JSON.stringify(response.data.results)
+    return response.data;
 },{
         name: "update-files",
-        description: "Update the contents of specified files. This is useful for making changes to files based on the requirements of the task at hand. This tool can also use to create new files by providing a new file name in the file field and the content to be added in the content field.",
+        description: "Update the contents of specified files using the same relative paths returned by list-files.",
         schema: z.object({
-            file: z.string().describe("The absolute path of the file to update"),
+            file: z.string().describe("The relative path of the file to update"),
             content: z.string().describe("The new content for the file")
         }).describe("The list of files to update and their new contents")
+})
+
+export const createFiles = tool(async ({ files }) => {
+    console.log("[create-files] creating:", files.map((file) => file.file).join(", "));
+
+    const response = await axios.post("http://019f9d83-c5d0-77d8-895d-511838a6df0d.agent.localhost/create-files", {
+        files
+    });
+
+    return response.data;
+},{
+    name: "create-files",
+    description: "Create new files using the same relative paths returned by list-files.",
+    schema: z.object({
+        files: z.array(z.object({
+            file: z.string().describe("The relative path of the file to create"),
+            content: z.string().describe("The full content of the file")
+        }))
+    })
 })
