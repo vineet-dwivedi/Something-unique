@@ -1,42 +1,42 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: router-deployment
+  name: ai-deployment
   labels:
-    name: router-deployment
+    name: ai-deployment
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
-      app: router
+      app: ai-server
   template:
     metadata:
       labels:
-        app: router
+        app: ai-server
     spec:
       containers:
-        - name: router-server
-          image: router:latest
+        - name: ai-server
+          image: ai-orchestration
           imagePullPolicy: IfNotPresent
           resources:
             requests:
               cpu: "250m"
-              memory: "250Mi"
+              memory: "256Mi"
             limits:
               cpu: "500m"
-              memory: "500Mi"
+              memory: "512Mi"
           livenessProbe:
             httpGet:
-              path: /api/status/healthz
+              path: /api/ai/healthz
               port: 3000
             initialDelaySeconds: 90
             timeoutSeconds: 10
           readinessProbe:
             httpGet:
-              path: /api/status/readyz
+              path: /api/ai/healthz
               port: 3000
             initialDelaySeconds: 30
             timeoutSeconds: 10
           ports:
             - containerPort: 3000
-              name: my-name
+              name: ai-server-port
