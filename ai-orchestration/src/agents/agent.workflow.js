@@ -10,11 +10,43 @@ import {
     pickHeuristicFiles
 } from "./agent.helpers.js";
 
+const UI_TASK_PATTERN = /(ui|frontend|front-end|design|style|theme|landing|dashboard|website|web app|page|screen|layout|responsive|mobile|desktop|button|card|hero|navbar|header|footer|animation|transition|hover|modern|premium|elegant|polished|redesign)/i;
+
+function isUiTask(task) {
+    return UI_TASK_PATTERN.test(String(task));
+}
+
+function buildUiDesignBrief() {
+    return (
+        `Design guidance:\n` +
+        `- Create a polished, impressive frontend instead of a default starter-template look.\n` +
+        `- Use strong visual hierarchy, custom spacing, and a clear layout rhythm.\n` +
+        `- Prefer a distinctive color palette, layered backgrounds, gradients, or subtle texture when appropriate.\n` +
+        `- Add subtle animation and motion only where it improves the experience: gentle fades, small entrance reveals, hover transitions, focus states, and light micro-interactions.\n` +
+        `- Keep motion restrained and tasteful; do not make the UI feel busy or flashy.\n` +
+        `- Make the layout responsive for desktop and mobile.\n` +
+        `- Avoid generic boilerplate styling, flat white-on-gray starter screens, and copy-paste demo layouts.\n` +
+        `- Preserve functionality while upgrading the visual polish.\n`
+    );
+}
+
+function expandTaskForUi(task) {
+    const rawTask = String(task ?? "").trim();
+
+    if (!rawTask || !isUiTask(rawTask)) {
+        return rawTask;
+    }
+
+    return `${rawTask}\n\n${buildUiDesignBrief()}`;
+}
+
 function buildFileSelectionPrompt(task, availableFiles) {
+    const enrichedTask = expandTaskForUi(task);
+
     // Ask for a minimal file shortlist before we spend tokens reading file contents.
     return (
         `You are helping edit a codebase.\n\n` +
-        `Task: ${task}\n\n` +
+        `Task: ${enrichedTask}\n\n` +
         `Choose the smallest useful set of files to inspect next.\n` +
         `Return JSON with a top-level key named "files" containing the selected file paths.\n` +
         `Only return files that appear in the list below, and keep the set focused on files likely to affect the task.\n\n` +
@@ -23,10 +55,12 @@ function buildFileSelectionPrompt(task, availableFiles) {
 }
 
 function buildUpdatePrompt(task, fileContents) {
+    const enrichedTask = expandTaskForUi(task);
+
     // Give the model full file text so it can return complete replacement files.
     return (
         `You are editing files to satisfy the following task:\n\n` +
-        `Task: ${task}\n\n` +
+        `Task: ${enrichedTask}\n\n` +
         `Here are the relevant files and their full contents:\n\n` +
         `${formatFileContents(fileContents)}\n\n` +
         `Return JSON with a top-level key named "updates" containing the file updates.\n` +
