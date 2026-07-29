@@ -1,4 +1,4 @@
-import { createFiles, listFiles, readFiles, updateFiles } from "./tools.js";
+import { createAgentTools } from "./tools.js";
 import { fileSelectionSchema, updatePlanSchema } from "./agent.schemas.js";
 import {
     extractFileContents,
@@ -110,8 +110,10 @@ async function planUpdates({ task, model, fileContents }) {
     });
 }
 
-async function applyUpdates({ updates, fileContents, availableFileSet }) {
+async function applyUpdates({ updates, fileContents, availableFileSet, tools }) {
     const applied = [];
+    const created = [];
+    const updated = [];
 
     for (const update of updates) {
         const targetFile = normalizePath(update.file);
@@ -127,32 +129,40 @@ async function applyUpdates({ updates, fileContents, availableFileSet }) {
         if (!fileExists) {
             // New path: create the file through the create-files endpoint.
             console.log(`[agent] creating: ${targetFile}`);
-            await createFiles.invoke({
+            await tools.createFiles.invoke({
                 files: [{
                     file: targetFile,
                     content: update.content
                 }]
             });
+            created.push(targetFile);
         } else {
             // Existing path: update the file in place.
             console.log(`[agent] updating: ${targetFile}`);
-            await updateFiles.invoke({
+            await tools.updateFiles.invoke({
                 file: targetFile,
                 content: update.content
             });
+            updated.push(targetFile);
         }
 
         applied.push(targetFile);
     }
 
-    return applied;
+    return {
+        applied,
+        created,
+        updated
+    };
 }
 
-export async function runAgent({ task, model }) {
+export async function runAgent({ task, model, apiBaseUrl }) {
     console.log(`[agent] task: ${task}`);
 
+    const tools = createAgentTools(apiBaseUrl);
+
     // Start with the workspace file list so we know what can be read or updated.
-    const availableFiles = normalizeAvailableFiles(await listFiles.invoke({}));
+    const availableFiles = normalizeAvailableFiles(await tools.listFiles.invoke({}));
     if (availableFiles.length === 0) {
         console.log("[agent] no files discovered");
         return;
@@ -169,7 +179,7 @@ export async function runAgent({ task, model }) {
     }
 
     console.log(`[agent] reading: ${filesToRead.join(", ")}`);
-    const readResult = await readFiles.invoke({
+    const readResult = await tools.readFiles.invoke({
         files: filesToRead
     });
 
@@ -185,11 +195,21 @@ export async function runAgent({ task, model }) {
     }
 
     // Write each edit with the correct endpoint based on whether the file already exists.
-    const applied = await applyUpdates({ updates, fileContents, availableFileSet });
-    if (applied.length === 0) {
+    const changeSet = await applyUpdates({ updates, fileContents, availableFileSet, tools });
+    if (changeSet.applied.length === 0) {
         console.log("[agent] nothing changed after comparison");
         return;
     }
 
-    console.log(`[agent] updated files: ${applied.join(", ")}`);
+    console.log(`[agent] updated files: ${changeSet.applied.join(", ")}`);
+
+    return {
+        task,
+        apiBaseUrl: tools.baseUrl,
+        discoveredFiles: availableFiles.length,
+        filesToRead,
+        applied: changeSet.applied,
+        createdFiles: changeSet.created,
+        updatedFiles: changeSet.updated
+    };
 }

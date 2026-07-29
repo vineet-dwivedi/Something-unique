@@ -12,8 +12,13 @@ loadEnv({
 });
 
 export function loadAgentConfig(argv = process.argv.slice(2)) {
-    // Treat the full CLI argument string as the task prompt.
-    const task = argv.join(" ").trim() || DEFAULT_TASK;
+    return {
+        task: argv.join(" ").trim() || DEFAULT_TASK,
+        model: createModel()
+    };
+}
+
+export function createModel() {
     // Accept the common capitalized and lowercase env key names.
     const apiKey = process.env.MISTRAL_API_KEY ?? process.env.MISTRAL_API_key;
 
@@ -28,8 +33,5 @@ export function loadAgentConfig(argv = process.argv.slice(2)) {
         temperature: 0
     });
 
-    return {
-        task,
-        model
-    };
+    return model;
 }
