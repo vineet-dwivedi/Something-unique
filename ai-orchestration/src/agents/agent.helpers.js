@@ -42,7 +42,7 @@ export function pickHeuristicFiles(taskText, availableFiles) {
     const stylingTask = /(theme|dark|light|style|styles|css|ui|frontend|front-end|appearance|design|layout|landing|dashboard|page|screen|responsive|mobile|desktop|animation|transition|hover|modern|premium|elegant|polished|redesign)/i.test(lowerTask);
 
     if (stylingTask) {
-        ["src/App.css", "src/index.css", "src/App.jsx", "src/main.jsx", "index.html"].forEach(addIfPresent);
+        ["package.json", "src/App.css", "src/index.css", "src/App.jsx", "src/main.jsx", "index.html"].forEach(addIfPresent);
         return selected;
     }
 
