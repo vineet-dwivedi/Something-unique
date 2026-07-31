@@ -12,6 +12,21 @@ function createHttpTool(handler) {
     };
 }
 
+function resolveToolBaseUrl(config) {
+    const context = config?.context ?? {};
+    const explicitBaseUrl = trimTrailingSlash(context.apiBaseUrl);
+
+    if (explicitBaseUrl) {
+        return explicitBaseUrl;
+    }
+
+    if (context.projectId) {
+        return `http://sandbox-service-${context.projectId}:3000`;
+    }
+
+    throw new Error("Missing sandbox routing context. Provide apiBaseUrl or projectId.");
+}
+
 export function createAgentTools(apiBaseUrl) {
     const baseUrl = trimTrailingSlash(apiBaseUrl);
 
@@ -67,10 +82,11 @@ export const listFiles = tool(
     async ({ }, config) => {
 
         const writer = config.context?.writer ?? (() => {});
+        const baseUrl = resolveToolBaseUrl(config);
 
         writer("Listing files in project directory...\n");
 
-        const response = await axios.get(`http://sandbox-service-${config.context.projectId}:3000/list-files`)
+        const response = await axios.get(`${baseUrl}/list-files`)
 
         writer("Files listed successfully." + "Files: " + response.data.files.join(",") + "\n");
 
@@ -87,10 +103,11 @@ export const readFiles = tool(
     async ({ files = [] }, config) => {
 
         const writer = config.context?.writer ?? (() => {});
+        const baseUrl = resolveToolBaseUrl(config);
 
         writer("Reading files..." + files.join(",") + "\n");
 
-        const response = await axios.get(`http://sandbox-service-${config.context.projectId}:3000/read-files?files=` + files.join(","))
+        const response = await axios.get(`${baseUrl}/read-files?files=` + encodeURIComponent(files.join(",")))
 
         writer("Files read successfully.\n");
         return JSON.stringify(response.data);
@@ -107,11 +124,13 @@ export const readFiles = tool(
 export const updateFiles = tool(
     async ({ files }, config) => {
         const writer = config.context?.writer ?? (() => {});
+        const baseUrl = resolveToolBaseUrl(config);
 
         writer("Updating files..." + files.map(f => f.file).join(",") + "\n");
+        config.context.updatedFiles?.push(...files.map((file) => file.file));
 
 
-        const response = await axios.patch(`http://sandbox-service-${config.context.projectId}:3000/update-files`, {
+        const response = await axios.patch(`${baseUrl}/update-files`, {
             updates: files
         })
 

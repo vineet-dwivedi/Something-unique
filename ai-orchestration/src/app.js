@@ -1,7 +1,6 @@
 import express from "express";
 import morgan from "morgan";
-import { createModel } from "./agents/agent.config.js";
-import { runAgent } from "./agents/agent.workflow.js";
+import agent from "./agents/code.agent.js";
 
 const app = express();
 app.use(morgan('dev'));
@@ -29,18 +28,31 @@ app.post('/api/ai/run', async (req, res) => {
     }
 
     try {
-        const model = createModel();
         const resolvedApiBaseUrl = apiBaseUrl || `http://sandbox-service-${sandboxId}:3000`;
-        const result = await runAgent({
-            task,
-            model,
-            apiBaseUrl: resolvedApiBaseUrl
+        const updatedFiles = [];
+        const toolLogs = [];
+
+        await agent.invoke({
+            messages: [{
+                role: "user",
+                content: task
+            }]
+        }, {
+            context: {
+                apiBaseUrl: resolvedApiBaseUrl,
+                projectId: sandboxId,
+                updatedFiles,
+                writer: (message) => {
+                    toolLogs.push(String(message).trim());
+                    console.log(`[agent-tool] ${String(message).trim()}`);
+                }
+            }
         });
-        const createdFiles = result?.createdFiles ?? [];
-        const updatedFiles = result?.updatedFiles ?? [];
+        const uniqueUpdatedFiles = [...new Set(updatedFiles)];
+        const createdFiles = [];
         const changedFiles = [
             ...createdFiles.map((file) => ({ file, changeType: "created" })),
-            ...updatedFiles.map((file) => ({ file, changeType: "updated" }))
+            ...uniqueUpdatedFiles.map((file) => ({ file, changeType: "updated" }))
         ];
 
         return res.status(200).json({
@@ -48,7 +60,7 @@ app.post('/api/ai/run', async (req, res) => {
             sandboxId: sandboxId || null,
             changedFiles,
             createdFiles,
-            updatedFiles
+            updatedFiles: uniqueUpdatedFiles
         });
     } catch (error) {
         return res.status(500).json({
