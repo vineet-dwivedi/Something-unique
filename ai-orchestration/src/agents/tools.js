@@ -1,93 +1,133 @@
-import axios from "axios";
-import { tool } from "langchain";
+import axios from 'axios';
+import { tool } from "langchain"
 import * as z from "zod";
 
-function normalizeBaseUrl(apiBaseUrl) {
-    const baseUrl = String(apiBaseUrl ?? "").trim();
+function trimTrailingSlash(url) {
+    return String(url ?? "").replace(/\/+$/, "");
+}
 
-    if (!baseUrl) {
-        throw new Error("Missing agent API base URL.");
-    }
-
-    return baseUrl.replace(/\/+$/, "");
+function createHttpTool(handler) {
+    return {
+        invoke: handler
+    };
 }
 
 export function createAgentTools(apiBaseUrl) {
-    // All agent file operations go through the sandbox bridge for one sandbox.
-    const baseUrl = normalizeBaseUrl(apiBaseUrl);
+    const baseUrl = trimTrailingSlash(apiBaseUrl);
 
-    const listFiles = tool(async () => {
-        // Ask the bridge for the current relative file list.
-        console.log("[list-files] requesting directory listing");
-
-        const response = await axios.get(`${baseUrl}/list-files`);
-        return response.data.files;
-    }, {
-        name: "list-files",
-        description: "List all files in the project directory. Use the relative paths it returns when reading or updating files.",
-        schema: z.object({})
-    });
-
-    const readFiles = tool(async ({ files }) => {
-        // Read multiple files in one request so the agent only fetches what it needs.
-        console.log("[read-files] requesting:", files.join(", "));
-
-        const response = await axios.get(
-            `${baseUrl}/read-files/?files=${encodeURIComponent(files.join(","))}`
-        );
-
-        return response.data;
-    }, {
-        name: "read-files",
-        description: "Read the content of specified files using the relative paths returned by list-files.",
-        schema: z.object({
-            files: z.array(z.string().describe("The list files to read. These should be files that were listed using the list-files tool or created later"))
-        })
-    });
-
-    const updateFiles = tool(async ({ file, content }) => {
-        // Send one full replacement file body for an existing path.
-        console.log("[update-files] writing:", file);
-
-        const response = await axios.patch(`${baseUrl}/update-files`, {
-            updates: [{ file, content }]
-        });
-
-        return response.data;
-    }, {
-        name: "update-files",
-        description: "Update the contents of specified files using the same relative paths returned by list-files.",
-        schema: z.object({
-            file: z.string().describe("The relative path of the file to update"),
-            content: z.string().describe("The new content for the file")
-        }).describe("The list of files to update and their new contents")
-    });
-
-    const createFiles = tool(async ({ files }) => {
-        // Create new files in a single request when the path does not exist yet.
-        console.log("[create-files] creating:", files.map((file) => file.file).join(", "));
-
-        const response = await axios.post(`${baseUrl}/create-files`, {
-            files
-        });
-
-        return response.data;
-    }, {
-        name: "create-files",
-        description: "Create new files using the same relative paths returned by list-files.",
-        schema: z.object({
-            files: z.array(z.object({
-                file: z.string().describe("The relative path of the file to create"),
-                content: z.string().describe("The full content of the file")
-            }))
-        })
-    });
+    if (!baseUrl) {
+        throw new Error("Missing sandbox agent base URL");
+    }
 
     return {
         baseUrl,
-        listFiles,
-        readFiles,
-        updateFiles,
-        createFiles
+        listFiles: createHttpTool(async () => {
+            console.log(`[agent-tools] GET ${baseUrl}/list-files`);
+            const response = await axios.get(`${baseUrl}/list-files`, {
+                timeout: 30000
+            });
+
+            return response.data;
+        }),
+        readFiles: createHttpTool(async ({ files = [] }) => {
+            const query = encodeURIComponent(files.join(","));
+            console.log(`[agent-tools] GET ${baseUrl}/read-files`);
+            const response = await axios.get(`${baseUrl}/read-files?files=${query}`, {
+                timeout: 30000
+            });
+
+            return response.data;
+        }),
+        updateFiles: createHttpTool(async ({ file, content, files }) => {
+            const updates = Array.isArray(files) ? files : [{ file, content }];
+            console.log(`[agent-tools] PATCH ${baseUrl}/update-files: ${updates.map((update) => update.file).join(", ")}`);
+            const response = await axios.patch(`${baseUrl}/update-files`, {
+                updates
+            }, {
+                timeout: 30000
+            });
+
+            return response.data;
+        }),
+        createFiles: createHttpTool(async ({ files = [] }) => {
+            console.log(`[agent-tools] POST ${baseUrl}/create-files: ${files.map((file) => file.file).join(", ")}`);
+            const response = await axios.post(`${baseUrl}/create-files`, {
+                files
+            }, {
+                timeout: 30000
+            });
+
+            return response.data;
+        })
     };
 }
+
+
+export const listFiles = tool(
+    async ({ }, config) => {
+
+        const writer = config.context?.writer ?? (() => {});
+
+        writer("Listing files in project directory...\n");
+
+        const response = await axios.get(`http://sandbox-service-${config.context.projectId}:3000/list-files`)
+
+        writer("Files listed successfully." + "Files: " + response.data.files.join(",") + "\n");
+
+        return JSON.stringify(response.data.files);
+    },
+    {
+        name: "list_files",
+        description: "List all the files in the project directory. This is useful for understanding what files are available to work with.",
+        schema: z.object({})
+    }
+)
+
+export const readFiles = tool(
+    async ({ files = [] }, config) => {
+
+        const writer = config.context?.writer ?? (() => {});
+
+        writer("Reading files..." + files.join(",") + "\n");
+
+        const response = await axios.get(`http://sandbox-service-${config.context.projectId}:3000/read-files?files=` + files.join(","))
+
+        writer("Files read successfully.\n");
+        return JSON.stringify(response.data);
+    },
+    {
+        name: "read_files",
+        description: "Read the contents of specified files. This is useful for understanding the content of files that are relevant to the task at hand.",
+        schema: z.object({
+            files: z.array(z.string()).describe("The list of files absolute paths to read. These should be files that were listed using the list_files tool or created later")
+        })
+    }
+)
+
+export const updateFiles = tool(
+    async ({ files }, config) => {
+        const writer = config.context?.writer ?? (() => {});
+
+        writer("Updating files..." + files.map(f => f.file).join(",") + "\n");
+
+
+        const response = await axios.patch(`http://sandbox-service-${config.context.projectId}:3000/update-files`, {
+            updates: files
+        })
+
+        writer("Files updated successfully.\n");
+
+
+        return JSON.stringify(response.data.results);
+    },
+    {
+        name: "update_files",
+        description: "Update the contents of specified files. This is useful for making changes to files based on the requirements of the task at hand. this tool can also use to create new files by providing a new file name in the file field and the content to be added in the content field.",
+        schema: z.object({
+            files: z.array(z.object({
+                file: z.string().describe("The absolute path of the file to update"),
+                content: z.string().describe("The new content for the file, the content should support json format.")
+            })).describe("The list of files to update and their new contents")
+        })
+    }
+)
