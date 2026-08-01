@@ -17,6 +17,12 @@ spec:
       containers:
         - name: ai-server
           image: ai-orchestration
+          env:
+            - name: MISTRALAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: mistral-secret
+                  key: MISTRALAI_API_KEY
           imagePullPolicy: IfNotPresent
           resources:
             requests:
@@ -25,9 +31,6 @@ spec:
             limits:
               cpu: "500m"
               memory: "512Mi"
-          envFrom:
-            - secretRef:
-                name: ai-secret
           livenessProbe:
             httpGet:
               path: /api/ai/healthz

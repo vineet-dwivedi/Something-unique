@@ -39,7 +39,7 @@ export function createAgentTools(apiBaseUrl) {
         listFiles: createHttpTool(async () => {
             console.log(`[agent-tools] GET ${baseUrl}/list-files`);
             const response = await axios.get(`${baseUrl}/list-files`, {
-                timeout: 30000
+                timeout: 50000
             });
 
             return response.data;
@@ -48,7 +48,7 @@ export function createAgentTools(apiBaseUrl) {
             const query = encodeURIComponent(files.join(","));
             console.log(`[agent-tools] GET ${baseUrl}/read-files`);
             const response = await axios.get(`${baseUrl}/read-files?files=${query}`, {
-                timeout: 30000
+                timeout: 50000
             });
 
             return response.data;
@@ -59,7 +59,7 @@ export function createAgentTools(apiBaseUrl) {
             const response = await axios.patch(`${baseUrl}/update-files`, {
                 updates
             }, {
-                timeout: 30000
+                timeout: 50000
             });
 
             return response.data;
@@ -69,7 +69,7 @@ export function createAgentTools(apiBaseUrl) {
             const response = await axios.post(`${baseUrl}/create-files`, {
                 files
             }, {
-                timeout: 30000
+                timeout: 50000
             });
 
             return response.data;
