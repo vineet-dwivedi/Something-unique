@@ -8,11 +8,11 @@ const app = express();
 app.use(morgan('dev'));
 app.use(express.json());
 
-app.get("/api/status/healthz", (req, res) => {
+app.get("/api/ai/healthz", (req, res) => {
     res.status(200).json({ status: "ok" });
 })
 
 // Routes
-app.use("/api/ai/run", agentRouter);
+app.use("/api/ai", agentRouter);
 
 export default app;

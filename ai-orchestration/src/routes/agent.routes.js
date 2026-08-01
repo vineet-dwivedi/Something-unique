@@ -7,12 +7,21 @@ agentRouter.post("/invoke", async (req, res) => {
     const { message, projectId } = req.body;
 
     res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive'
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no'
     });
 
-    const writer = (text) => res.write(text);
+    res.flushHeaders?.();
+
+    const writeEvent = (event, data) => {
+        const payload = typeof data === 'string' ? data : JSON.stringify(data);
+        const body = payload.split(/\r?\n/).map((line) => `data: ${line}`).join('\n');
+        res.write(`${event ? `event: ${event}\n` : ''}${body}\n\n`);
+    };
+
+    const writer = (text) => writeEvent("log", String(text ?? "").trimEnd());
 
     try {
         const stream = await agent.stream(
@@ -32,16 +41,18 @@ agentRouter.post("/invoke", async (req, res) => {
                 const role = m.role ?? m._getType?.();
                 if ((role === 'ai' || role === 'assistant') && !m.tool_calls?.length) {
                     const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
-                    res.write(content + '\n');
+                    writeEvent("final", content);
                     break;
                 }
             }
         }
 
+        writeEvent("done", "[DONE]");
         res.end();
     } catch (error) {
         console.error("Error invoking agent:", error);
         if (res.headersSent) {
+            writeEvent("error", error.message || "Failed to invoke agent");
             res.end();
         } else {
             res.status(500).json({ error: "Failed to invoke agent" });
