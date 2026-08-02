@@ -31,7 +31,7 @@ spec:
                 name: ai-service
                 port:
                   number: 80
-    - host: "*.preview.localhost"
+    - host: "*.preview.127.0.0.1.nip.io"
       http:
         paths:
           - pathType: Prefix
@@ -41,7 +41,7 @@ spec:
                 name: router-service
                 port:
                   number: 80
-    - host: "*.agent.localhost"
+    - host: "*.agent.127.0.0.1.nip.io"
       http:
         paths:
           - pathType: Prefix

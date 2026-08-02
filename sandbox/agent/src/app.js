@@ -3,7 +3,7 @@ import morgan from "morgan";
 import fs from "fs";
 import cors from "cors";
 import path from "path";
-import { Sever } from "socket.io";
+import { Server } from "socket.io";
 import http from "http";
 import pty from "node-pty";
 import os from "os";
@@ -19,6 +19,7 @@ app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 
 const io = new Server(httpServer,{
+    perMessageDeflate: false,
     cors: {
         origin: "*",
         methods: ["GET", "POST", "PATCH"]

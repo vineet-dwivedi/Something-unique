@@ -112,4 +112,4 @@ server.on('upgrade', (req, socket, head) => {
     }
 });
 
-export default app;
+export default server;

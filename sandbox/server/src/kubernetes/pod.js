@@ -36,6 +36,26 @@ export async function createPods(sandboxId) {
                     imagePullPolicy: "IfNotPresent",
                     name: "sandbox-container",
                     ports: [{ containerPort: 5173, name: "http" }],
+                    readinessProbe: {
+                        httpGet: {
+                            path: "/",
+                            port: 5173
+                        },
+                        initialDelaySeconds: 10,
+                        periodSeconds: 5,
+                        timeoutSeconds: 3,
+                        failureThreshold: 12
+                    },
+                    livenessProbe: {
+                        httpGet: {
+                            path: "/",
+                            port: 5173
+                        },
+                        initialDelaySeconds: 30,
+                        periodSeconds: 10,
+                        timeoutSeconds: 3,
+                        failureThreshold: 3
+                    },
                     volumeMounts: [
                         {
                             name: "workspace-volume",
@@ -57,6 +77,26 @@ export async function createPods(sandboxId) {
                     imagePullPolicy: "IfNotPresent",
                     name: "agent-container",
                     ports: [{containerPort: 3000, name: "http"}],
+                    readinessProbe: {
+                        httpGet: {
+                            path: "/",
+                            port: 3000
+                        },
+                        initialDelaySeconds: 5,
+                        periodSeconds: 5,
+                        timeoutSeconds: 3,
+                        failureThreshold: 12
+                    },
+                    livenessProbe: {
+                        httpGet: {
+                            path: "/",
+                            port: 3000
+                        },
+                        initialDelaySeconds: 20,
+                        periodSeconds: 10,
+                        timeoutSeconds: 3,
+                        failureThreshold: 3
+                    },
                     volumeMounts: [
                         {
                             name: "workspace-volume",

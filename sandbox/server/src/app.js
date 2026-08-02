@@ -17,6 +17,7 @@ app.get("/api/sandbox/health",(req,res)=>{
 
 app.post("/api/sandbox/start", async (req,res)=>{
     const sandboxId = uuid();
+    const baseDomain = process.env.SANDBOX_BASE_DOMAIN || "127.0.0.1.nip.io";
     await Promise.all([
         createPods(sandboxId),
         createService(sandboxId)
@@ -25,7 +26,8 @@ app.post("/api/sandbox/start", async (req,res)=>{
     return res.status(200).json({
         message: "Sandbox started successfully!",
         sandboxId,
-        previewUrl: `http://${sandboxId}.preview.localhost`
+        previewUrl: `http://${sandboxId}.preview.${baseDomain}`,
+        agentUrl: `http://${sandboxId}.agent.${baseDomain}`
     });
 });
 

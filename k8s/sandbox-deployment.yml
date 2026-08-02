@@ -8,7 +8,7 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: sandbox
+      app: sandbox-server
   strategy:
     rollingUpdate:
       maxSurge: 1
@@ -17,7 +17,7 @@ spec:
   template:
     metadata:
       labels:
-        app: sandbox
+        app: sandbox-server
     spec:
       serviceAccountName: resource-manager
       containers:
