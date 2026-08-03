@@ -1,0 +1,230 @@
+@use 'variables' as *;
+@use 'glassmorphism' as *;
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background-color: $bg-dark;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(30, 27, 75, 0.4) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(15, 23, 42, 0.6) 0px, transparent 50%);
+  overflow: hidden;
+  color: $text-main;
+  font-family: $font-sans;
+}
+
+// Navigation Header
+.top-header {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.25rem;
+  border-bottom: 1px solid $border-glass;
+  background: rgba(9, 13, 22, 0.85);
+  backdrop-filter: blur(16px);
+  z-index: 50;
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: $text-main;
+
+      .logo-icon {
+        width: 28px;
+        height: 28px;
+        background: $accent-gradient;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: $accent-glow;
+        color: #fff;
+      }
+    }
+  }
+
+  .header-center {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    .layout-switcher {
+      display: flex;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 0.2rem;
+      border-radius: 10px;
+      border: 1px solid $border-glass;
+
+      .layout-btn {
+        padding: 0.35rem 0.65rem;
+        font-size: 0.75rem;
+        border: none;
+        background: transparent;
+        color: $text-secondary;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        transition: all 0.2s ease;
+
+        &:hover {
+          color: $text-main;
+        }
+
+        &.active {
+          background: rgba(99, 102, 241, 0.25);
+          color: $text-accent;
+          font-weight: 600;
+        }
+      }
+    }
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+}
+
+// Main Workspace
+.main-workspace {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+// Left Sidebar (Chat + File Explorer)
+.left-sidebar {
+  width: 380px;
+  min-width: 320px;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid $border-glass;
+  background: rgba(13, 18, 30, 0.75);
+  backdrop-filter: blur(12px);
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 10;
+
+  &.collapsed {
+    width: 0;
+    min-width: 0;
+    overflow: hidden;
+    border-right: none;
+  }
+
+  .sidebar-tabs {
+    display: flex;
+    border-bottom: 1px solid $border-glass;
+    background: rgba(0, 0, 0, 0.2);
+
+    .tab-item {
+      flex: 1;
+      padding: 0.75rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: $text-secondary;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      transition: all 0.2s ease;
+
+      &:hover {
+        color: $text-main;
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      &.active {
+        color: $text-accent;
+        border-bottom-color: $accent-primary;
+        background: rgba(99, 102, 241, 0.08);
+      }
+    }
+  }
+
+  .sidebar-content {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+// Main Content Area (Code + Wide Preview)
+.content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  .split-container {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    position: relative;
+
+    // Code Editor Section (40% default)
+    .editor-section {
+      flex: 4;
+      min-width: 300px;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid $border-glass;
+      background: rgba(10, 15, 26, 0.85);
+
+      &.hidden {
+        display: none;
+      }
+    }
+
+    // Wide Preview Section (60% default as requested!)
+    .preview-section {
+      flex: 6;
+      min-width: 400px;
+      display: flex;
+      flex-direction: column;
+      background: rgba(15, 23, 42, 0.4);
+
+      &.hidden {
+        display: none;
+      }
+    }
+  }
+}
+
+// Bottom Terminal Drawer
+.terminal-drawer {
+  height: 220px;
+  min-height: 140px;
+  max-height: 450px;
+  border-top: 1px solid $border-glass;
+  background: rgba(8, 11, 18, 0.95);
+  backdrop-filter: blur(16px);
+  display: flex;
+  flex-direction: column;
+  transition: height 0.25s ease;
+
+  &.collapsed {
+    height: 36px;
+    overflow: hidden;
+  }
+}

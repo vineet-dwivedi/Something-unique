@@ -1,0 +1,131 @@
+@use 'variables' as *;
+
+// Minimalist Glassmorphism Utilities & Mixins
+
+@mixin glass-panel($bg: $bg-glass, $border: $border-glass, $blur: $backdrop-blur) {
+  background: $bg;
+  backdrop-filter: $blur;
+  -webkit-backdrop-filter: $blur;
+  border: 1px solid $border;
+  box-shadow: $shadow-glass;
+}
+
+@mixin glass-card-interactive {
+  @include glass-panel;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  
+  &:hover {
+    background: $bg-glass-hover;
+    border-color: $border-glass-light;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45);
+  }
+}
+
+.glass-panel {
+  @include glass-panel;
+}
+
+.glass-card {
+  @include glass-card-interactive;
+  border-radius: 16px;
+  padding: 1.5rem;
+}
+
+.glass-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.25rem;
+  border-radius: 12px;
+  font-family: $font-sans;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid $border-glass;
+  background: rgba(255, 255, 255, 0.04);
+  color: $text-main;
+  backdrop-filter: blur(8px);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: $border-glass-light;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &.btn-primary {
+    background: $accent-gradient;
+    border: none;
+    color: #ffffff;
+    box-shadow: $accent-glow;
+
+    &:hover {
+      opacity: 0.95;
+      box-shadow: 0 0 30px rgba(99, 102, 241, 0.6);
+    }
+  }
+
+  &.btn-sm {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
+    border-radius: 8px;
+  }
+}
+
+.glass-input {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid $border-glass;
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  color: $text-main;
+  font-family: $font-sans;
+  font-size: 0.9rem;
+  outline: none;
+  backdrop-filter: blur(12px);
+  transition: all 0.2s ease;
+
+  &::placeholder {
+    color: $text-muted;
+  }
+
+  &:focus {
+    border-color: $accent-primary;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+    background: rgba(15, 23, 42, 0.85);
+  }
+}
+
+.badge-glow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  color: $text-accent;
+
+  .pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: $success;
+    box-shadow: 0 0 10px $success;
+    animation: pulse 2s infinite;
+  }
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}

@@ -1,0 +1,157 @@
+@use 'variables' as *;
+@use 'glassmorphism' as *;
+
+.hero-screen {
+  min-height: 100vh;
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  position: relative;
+  background: radial-gradient(circle at 50% 30%, rgba(192, 132, 252, 0.08) 0%, rgba(15, 20, 28, 1) 75%);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4rem 2rem 5rem;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+  }
+
+  .bg-glow-orb {
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(244, 114, 182, 0.12) 0%, rgba(147, 197, 253, 0.08) 40%, transparent 70%);
+    filter: blur(90px);
+    pointer-events: none;
+    animation: floatOrb 14s ease-in-out infinite alternate;
+  }
+
+  .hero-container {
+    max-width: 900px;
+    width: 100%;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 2rem;
+    margin: auto 0;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 1rem;
+    border-radius: 30px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(12px);
+    font-size: 0.85rem;
+    color: $text-pastel-sky;
+    box-shadow: $pastel-sky-glow;
+  }
+
+  .hero-title {
+    font-size: 3.5rem;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: $text-main;
+
+    .gradient-text {
+      background: $accent-gradient;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+  }
+
+  .hero-description {
+    font-size: 1.15rem;
+    color: $text-secondary;
+    max-width: 650px;
+    line-height: 1.6;
+  }
+
+  .hero-action-card {
+    @include glass-panel($bg: rgba(26, 35, 50, 0.6), $blur: blur(24px));
+    border-radius: 24px;
+    padding: 2.5rem;
+    max-width: 580px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+
+    .start-btn {
+      width: 100%;
+      padding: 1rem 2rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      border-radius: 14px;
+      gap: 0.75rem;
+
+      svg {
+        width: 22px;
+        height: 22px;
+      }
+    }
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+    width: 100%;
+    margin-top: 1rem;
+
+    .feature-item {
+      @include glass-panel($bg: rgba(255, 255, 255, 0.02), $border: rgba(255, 255, 255, 0.05));
+      border-radius: 16px;
+      padding: 1.25rem;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+
+      .feat-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: rgba(192, 132, 252, 0.12);
+        color: $text-pastel-lavender;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      h4 {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: $text-main;
+      }
+
+      p {
+        font-size: 0.8rem;
+        color: $text-muted;
+        line-height: 1.4;
+      }
+    }
+  }
+}
+
+@keyframes floatOrb {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(25px, 35px) scale(1.08); }
+}

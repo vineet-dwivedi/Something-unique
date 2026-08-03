@@ -1,0 +1,86 @@
+@use 'variables' as *;
+@use 'glassmorphism' as *;
+
+.terminal-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background: #070a12;
+  overflow: hidden;
+
+  .terminal-header {
+    height: 36px;
+    padding: 0 1rem;
+    background: rgba(10, 14, 23, 0.95);
+    border-bottom: 1px solid $border-glass;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .terminal-title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: $text-secondary;
+
+      .status-indicator {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: $success;
+        box-shadow: 0 0 8px $success;
+
+        &.disconnected {
+          background: $danger;
+          box-shadow: 0 0 8px $danger;
+        }
+      }
+    }
+
+    .terminal-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+
+      .term-action-btn {
+        padding: 0.2rem 0.4rem;
+        border-radius: 4px;
+        background: transparent;
+        border: none;
+        color: $text-muted;
+        cursor: pointer;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.08);
+          color: $text-main;
+        }
+      }
+    }
+  }
+
+  .terminal-body {
+    flex: 1;
+    padding: 0.5rem;
+    overflow: hidden;
+    position: relative;
+
+    .xterm {
+      height: 100%;
+      width: 100%;
+      padding: 0.25rem;
+
+      .xterm-viewport {
+        &::-webkit-scrollbar {
+          width: 6px;
+        }
+        &::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.15);
+          border-radius: 3px;
+        }
+      }
+    }
+  }
+}

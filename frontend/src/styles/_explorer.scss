@@ -1,0 +1,83 @@
+@use 'variables' as *;
+@use 'glassmorphism' as *;
+
+.file-explorer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  .explorer-header {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid $border-glass;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .title {
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: $text-secondary;
+    }
+  }
+
+  .search-box {
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid $border-glass;
+
+    input {
+      padding: 0.4rem 0.75rem;
+      font-size: 0.8rem;
+    }
+  }
+
+  .file-tree {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem 0;
+
+    .tree-node {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 1rem;
+      font-size: 0.84rem;
+      color: $text-secondary;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.04);
+        color: $text-main;
+      }
+
+      &.active {
+        background: rgba(99, 102, 241, 0.18);
+        color: $text-accent;
+        font-weight: 500;
+        border-left: 2px solid $accent-primary;
+      }
+
+      .node-icon {
+        width: 16px;
+        height: 16px;
+        color: $text-muted;
+
+        &.folder-icon { color: #f59e0b; }
+        &.js-icon { color: #facc15; }
+        &.css-icon { color: #38bdf8; }
+        &.json-icon { color: #a855f7; }
+        &.html-icon { color: #f97316; }
+      }
+
+      .file-name {
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+  }
+}
