@@ -1,16 +1,39 @@
-# React + Vite
+# 🎨 KnitDev Frontend Flow & Architecture
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The KnitDev frontend is an interactive AI Sandbox IDE built with React and Vite. It provides a multi-pane workspace with a live code editor, preview iframe, AI chat prompt, and socket-connected terminal drawer.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🔄 User Interaction Flow
 
-## React Compiler
+```
++------------------+       +-------------------+       +-----------------------+
+|  User UI Prompt  | ----> |  POST /api/ai/    | ----> |  AI Orchestration     |
+|  "Make a game"   |       |       invoke      |       |  (LangChain Agent)    |
++------------------+       +-------------------+       +-----------------------+
+                                                                   |
+                                                                   v
++------------------+       +-------------------+       +-----------------------+
+| Live Preview     | <---- | Vite HMR Watcher  | <---- | Sandbox Agent         |
+|  (*.preview...)  |       | (/workspace/src)  |       | (PATCH /update-files) |
++------------------+       +-------------------+       +-----------------------+
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## ⚡ 4-Step Action Lifecycle
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+1. **Start Sandbox**: Invokes `startSandbox()` (`POST /api/sandbox/start`) to launch a K8s pod and retrieve preview/agent URLs.
+2. **AI Stream Execution**: Invokes `invokeAiStream()` (`POST /api/ai/invoke`) to receive SSE events (`event: log`, `event: final`).
+3. **Workspace File Update**: Invokes `updateFile()` (`PATCH /update-files`) to write updated React components directly to `/workspace/src/App.jsx`.
+4. **Vite Hot Reload**: Vite dev server in the sandbox container automatically reloads the preview iframe.
+
+---
+
+## 🛠️ Key Issues Resolved
+
+1. **502 Bad Gateway Preview**: Added `host: '0.0.0.0'`, `port: 5173`, `strictPort: true`, and `allowedHosts: true` to Vite config so K8s readiness probes succeed.
+2. **Operation Abort Timeouts**: Increased proxy timeouts from 5s to 10 minutes in the router proxy.
+3. **Router Crash on WS Upgrade**: Added safe function checks and try-catch handling in `server.on('upgrade')`.
+4. **CORS Policy Error**: Added global CORS middleware to `ai-orchestration`.
+5. **Invisible Code Changes**: Fixed `updateFile()` payload format from `{ files: [...] }` to `{ updates: [...] }` and added path normalization in `sandbox-agent`.
