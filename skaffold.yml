@@ -16,6 +16,10 @@ build:
       context: sandbox/agent
       docker:
         dockerfile: dockerfile
+    - image: auth
+      context: auth
+      docker:
+        dockerfile: dockerfile
     - image: router
       context: sandbox/router
       docker:
@@ -34,6 +38,8 @@ manifests:
     - k8s/rbac.yml
     - k8s/ai-deployment.yml
     - k8s/ai-service.yml
+    - k8s/auth-deployment.yml
+    - k8s/auth-service.yml
     - k8s/router-deployment.yml
     - k8s/router-service.yml
     - k8s/sandbox-deployment.yml
