@@ -175,7 +175,7 @@ export default function App() {
         onError: (err) => {
           console.error('SSE Stream Error:', err);
           setIsGenerating(false);
-          setMessages(prev => [...prev, { sender: 'ai', text: 'Error connecting to AI service stream.' }]);
+          setMessages(prev => [...prev, { sender: 'ai', text: `Error connecting to AI service stream: ${err?.message || String(err) || 'Unknown error'}` }]);
         }
       }
     );

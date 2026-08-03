@@ -68,13 +68,26 @@ io.on("connection",(socket)=>{
     });
 });
 
+function resolveWorkspacePath(file) {
+    let clean = String(file || '').trim();
+    if (clean.startsWith('/workspace/')) {
+        clean = clean.substring('/workspace/'.length);
+    } else if (clean.startsWith('workspace/')) {
+        clean = clean.substring('workspace/'.length);
+    } else if (clean.startsWith('/app/')) {
+        clean = clean.substring('/app/'.length);
+    } else if (clean.startsWith('app/')) {
+        clean = clean.substring('app/'.length);
+    }
+    if (clean.startsWith('/')) {
+        clean = clean.slice(1);
+    }
+    return path.join(WORKING_DIR, clean);
+}
+
 /**
  * @route GET /list-files
  * @description lists all files and folders in the working directory. Returns a JSON object with the top-level entries in the workspace.
- * - eg, {
- *    "message": "Elements in working directory",
- *    "elements": ["file1.txt", "src", "README.md"]
- * }
  */
 app.get("/list-files",async (req,res) => {
     const listFiles = async (dir,baseDir) =>{
@@ -118,7 +131,6 @@ app.get("/list-files",async (req,res) => {
 /**
  * @route GET /read-files
  * @description reads one or more files passed through the query string and returns their contents.
- * - eg, /read-files?files=file1.txt,src/file2.txt
  */
 app.get("/read-files",async (req,res)=>{
     const files = req.query.files;
@@ -133,7 +145,7 @@ app.get("/read-files",async (req,res)=>{
     const fileList = files.split(',');
 
     const results = await Promise.all(fileList.map(async (file) => {
-        const filePath = path.join(WORKING_DIR, file);
+        const filePath = resolveWorkspacePath(file);
         try{
             const content = await fs.promises.readFile(filePath, 'utf-8');
             return {
@@ -155,34 +167,35 @@ app.get("/read-files",async (req,res)=>{
 /**
  * @route PATCH /update-files
  * @description updates existing files with the provided content payload.
- * - eg, {
- *    "updates": [
- *      { "file": "file1.txt", "content": "new content" },
- *      { "file": "src/file2.txt", "content": "updated content" }
- *    ]
- * }
  */
 app.patch("/update-files", async (req, res) => {
-    // 1. Destructure "updates" from req.body
-    const { updates } = req.body;
+    const rawUpdates = req.body.updates || req.body.files;
 
-    // 2. Validate that "updates" exists and IS an array
-    if (!updates || !Array.isArray(updates)) {
+    if (!rawUpdates || !Array.isArray(rawUpdates)) {
         return res.status(400).json({
-            message: 'Invalid request body. Expected a JSON object with an "updates" property containing an array of file updates.',
+            message: 'Invalid request body. Expected a JSON object with an "updates" or "files" property containing an array.',
             status: 'error'
         });
-    } // <-- Close the if statement HERE!
+    }
 
-    // 3. Process the file updates
     try {
-        const results = await Promise.all(updates.map(async (update) => {
-            const { file, content } = update;
-            const filePath = path.join(WORKING_DIR, file);
+        const results = await Promise.all(rawUpdates.map(async (update) => {
+            let file = update.file;
+            let content = update.content;
+
+            if (!file && typeof update === 'object') {
+                const keys = Object.keys(update);
+                if (keys.length > 0) {
+                    file = keys[0];
+                    content = update[keys[0]];
+                }
+            }
+
+            const filePath = resolveWorkspacePath(file);
 
             try {
                 await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-                await fs.promises.writeFile(filePath, content, 'utf-8');
+                await fs.promises.writeFile(filePath, content ?? '', 'utf-8');
                 return {
                     [filePath]: 'File updated successfully',
                 };
@@ -208,12 +221,6 @@ app.patch("/update-files", async (req, res) => {
 /**
  * @route POST /create-files
  * @description creates new files from the request body payload.
- * - eg, {
- *    "files": [
- *      { "file": "file1.txt", "content": "hello" },
- *      { "file": "src/file2.txt", "content": "world" }
- *    ]
- * }
  */
 app.post("/create-files", async (req,res)=>{
     const files = req.body.files;
@@ -226,11 +233,21 @@ app.post("/create-files", async (req,res)=>{
     }
 
     const results = await Promise.all(files.map(async (fileObj) =>{
-        const {file,content} = fileObj;
-        const filePath = path.join(WORKING_DIR, file);
+        let file = fileObj.file;
+        let content = fileObj.content;
+
+        if (!file && typeof fileObj === 'object') {
+            const keys = Object.keys(fileObj);
+            if (keys.length > 0) {
+                file = keys[0];
+                content = fileObj[keys[0]];
+            }
+        }
+
+        const filePath = resolveWorkspacePath(file);
         try{
             await fs.promises.mkdir(path.dirname(filePath), {recursive: true});
-            await fs.promises.writeFile(filePath, content, 'utf-8');
+            await fs.promises.writeFile(filePath, content ?? '', 'utf-8');
             return {
                 [filePath]: 'File created successfully',
             }

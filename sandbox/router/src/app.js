@@ -26,8 +26,8 @@ function getProxy(sandboxId){
             target,
             changeOrigin: true,
             ws: true,
-            timeout: 5000,
-            proxyTimeout: 5000,
+            timeout: 600000,
+            proxyTimeout: 600000,
             on: {
                 error: (err, req, res) => {
                     if (!res.headersSent) {
@@ -55,8 +55,8 @@ function getAgentProxy(sandboxId){
             target,
             changeOrigin: true,
             ws: true,
-            timeout: 5000,
-            proxyTimeout: 5000,
+            timeout: 600000,
+            proxyTimeout: 600000,
             on: {
                 error: (err, req, res) => {
                     if (!res.headersSent) {
@@ -95,20 +95,34 @@ app.use((req, res, next) => {
 const server = http.createServer(app);
 
 server.on('upgrade', (req, socket, head) => {
-    const host = req.headers.host || '';
-    const sandboxId = host.split('.')[0]; // Extract the sandbox ID from the subdomain
-    const type = host.split('.')[1];
+    try {
+        const host = req.headers.host || '';
+        const parts = host.split('.');
+        const sandboxId = parts[0];
+        const type = parts[1];
 
-    console.log('WS upgrade request for sandbox:', sandboxId, type);
+        console.log('WS upgrade request for sandbox:', sandboxId, type);
 
-    if (type === 'agent') {
-        const proxy = getAgentProxy(sandboxId);
-        proxy.upgrade(req, socket, head);
-    } else if (type === 'preview') {
-        const proxy = getProxy(sandboxId);
-        proxy.upgrade(req, socket, head);
-    } else {
-        socket.destroy();
+        if (type === 'agent') {
+            const proxy = getAgentProxy(sandboxId);
+            if (typeof proxy.upgrade === 'function') {
+                proxy.upgrade(req, socket, head);
+            } else if (typeof proxy === 'function') {
+                proxy(req, socket, head);
+            }
+        } else if (type === 'preview') {
+            const proxy = getProxy(sandboxId);
+            if (typeof proxy.upgrade === 'function') {
+                proxy.upgrade(req, socket, head);
+            } else if (typeof proxy === 'function') {
+                proxy(req, socket, head);
+            }
+        } else {
+            socket.destroy();
+        }
+    } catch (err) {
+        console.error('Error handling WS upgrade in router:', err);
+        try { socket.destroy(); } catch (_) {}
     }
 });
 

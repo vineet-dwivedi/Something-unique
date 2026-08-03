@@ -10,7 +10,8 @@ agentRouter.post("/invoke", async (req, res) => {
         'Content-Type': 'text/event-stream; charset=utf-8',
         'Cache-Control': 'no-cache, no-transform',
         'Connection': 'keep-alive',
-        'X-Accel-Buffering': 'no'
+        'X-Accel-Buffering': 'no',
+        'Access-Control-Allow-Origin': '*'
     });
 
     res.flushHeaders?.();

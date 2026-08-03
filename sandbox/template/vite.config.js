@@ -11,8 +11,13 @@ export default defineConfig({
     },
   },
   server: {
-      host: '0.0.0.0',
-      port: 5173,
-      allowedHosts: true
+    host: '0.0.0.0',
+    port: 5173,
+    strictPort: true,
+    allowedHosts: true,
+    cors: true,
+    hmr: {
+      clientPort: 80
+    }
   }
 })

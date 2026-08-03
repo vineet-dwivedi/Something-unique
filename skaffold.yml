@@ -31,6 +31,7 @@ build:
 
 manifests:
   rawYaml:
+    - k8s/rbac.yml
     - k8s/ai-deployment.yml
     - k8s/ai-service.yml
     - k8s/router-deployment.yml
@@ -38,4 +39,3 @@ manifests:
     - k8s/sandbox-deployment.yml
     - k8s/sandbox-service.yml
     - k8s/ingress.yml
-    - k8s/rbac.yml

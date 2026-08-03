@@ -101,21 +101,22 @@ export async function readFile(agentUrl, filePath) {
  */
 export async function updateFile(agentUrl, filePath, content) {
   try {
-    const formattedPath = filePath.startsWith('/') ? filePath : `/${filePath}`;
+    const cleanPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
     const response = await fetch(`${agentUrl}/update-files`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        files: [
-          { [formattedPath]: content }
+        updates: [
+          { file: cleanPath, content: content }
         ]
       })
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to update file: ${response.statusText}`);
+      const errText = await response.text();
+      throw new Error(`Failed to update file (${response.status}): ${errText}`);
     }
 
     return await response.json();
@@ -151,8 +152,7 @@ export async function invokeAiStream(message, projectId, callbacks = {}) {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
-    let currentLog = '';
-    let currentType = null;
+    let currentEvent = 'log';
 
     while (true) {
       const { done, value } = await reader.read();
@@ -166,66 +166,36 @@ export async function invokeAiStream(message, projectId, callbacks = {}) {
         line = line.trim();
         if (!line) continue;
 
-        if (line === 'log') {
-          currentType = 'log';
-        } else if (line === 'final') {
-          currentType = 'final';
-        } else if (line === 'done' || line === '[DONE]' || line.includes('Connection closed')) {
+        if (line.startsWith('event: ')) {
+          currentEvent = line.substring(7).trim();
+        } else if (line.startsWith('data: ')) {
+          const dataText = line.substring(6);
+
+          if (currentEvent === 'log') {
+            if (onLog) onLog(dataText);
+          } else if (currentEvent === 'final') {
+            if (onFinal) onFinal(dataText);
+          } else if (currentEvent === 'done' || dataText === '[DONE]') {
+            if (onDone) onDone();
+          } else {
+            if (onLog) onLog(dataText);
+          }
+        } else if (line === 'log' || line === 'final' || line === 'done') {
+          currentEvent = line;
+        } else if (line === '[DONE]') {
           if (onDone) onDone();
         } else {
-          // Content line matching previous marker
-          if (currentType === 'log') {
-            if (onLog) onLog(line);
-          } else if (currentType === 'final') {
-            if (onFinal) onFinal(line);
-          } else {
-            // General status updates or timestamps
-            if (line.startsWith('Listing files') || line.startsWith('Reading files') || line.startsWith('Updating files') || line.startsWith('Files updated')) {
-              if (onLog) onLog(line);
-            }
-          }
+          if (currentEvent === 'log' && onLog) onLog(line);
+          if (currentEvent === 'final' && onFinal) onFinal(line);
         }
       }
     }
 
     if (onDone) onDone();
   } catch (error) {
-    console.warn("API AI Invoke unavailable, falling back to simulated SSE stream:", error);
-    // Simulate stream for UI demonstration if backend isn't live
-    simulateMockAiStream(message, callbacks);
+    console.error("API AI Invoke Stream Error:", error);
+    if (onError) onError(error);
   }
-}
-
-/**
- * Simulated stream for demo when backend is offline
- */
-function simulateMockAiStream(message, { onLog, onFinal, onDone }) {
-  const steps = [
-    { type: 'log', text: 'Connected to http://localhost/api/ai/invoke' },
-    { type: 'log', text: 'Listing files in project directory...' },
-    { type: 'log', text: 'Files listed successfully. Files: src/App.jsx, src/App.css, package.json' },
-    { type: 'log', text: 'Reading files... src/App.jsx, src/App.css' },
-    { type: 'log', text: 'Files read successfully.' },
-    { type: 'log', text: 'Updating files... src/App.jsx, src/App.css' },
-    { type: 'log', text: 'Files updated successfully.' },
-    { 
-      type: 'final', 
-      text: `Here's what I've implemented for: "${message}"\n\n### Changes Made\n1. **Updated App Layout & UI**: Applied futuristic neon gradient styling.\n2. **Added Interactive Micro-interactions**: Added smooth hover animations and active status indicators.\n3. **Refreshed Code & Styles**: Optimized CSS variables for seamless theme customization.` 
-    }
-  ];
-
-  let index = 0;
-  const interval = setInterval(() => {
-    if (index < steps.length) {
-      const step = steps[index];
-      if (step.type === 'log' && onLog) onLog(step.text);
-      if (step.type === 'final' && onFinal) onFinal(step.text);
-      index++;
-    } else {
-      clearInterval(interval);
-      if (onDone) onDone();
-    }
-  }, 700);
 }
 
 /**
