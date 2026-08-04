@@ -2,6 +2,7 @@ import {Router} from 'express';
 import passport from 'passport';
 import jwt from 'jsonwebtoken';
 import User from '../models/user.model.js';
+import { sendAuthNotification } from '../services/notification.service.js';
 
 const router = Router();
 
@@ -15,6 +16,14 @@ router.get("/google/callback", passport.authenticate('google', { failureRedirect
 
         // Check if user already exists
         let existingUser = await User.findOne({ googleId: id });
+
+        await sendAuthNotification({
+            userId: existingUser._id,
+            action: 'google_login',
+            timestamp: new Date(),
+            email: emails[0].value,
+        });
+
         if (!existingUser) {
             // If user doesn't exist, create a new user
             existingUser = new User({
@@ -30,10 +39,10 @@ router.get("/google/callback", passport.authenticate('google', { failureRedirect
         const token = jwt.sign({id: existingUser._id, email: existingUser.email}, process.env.JWT_SECRET, { expiresIn: '1h' });
 
         res.cookie('token', token, { httpOnly: true });
-        res.redirect('/dashboard'); // Redirect to dashboard or any other page
+        res.redirect('/'); // Redirect to your frontend after successful login
     } catch (error) {
         console.error("Error during Google authentication callback:", error);
-        res.redirect('/login'); // Redirect to login on error
+        res.redirect('/'); // Redirect to your frontend on error
     }
 });
 
