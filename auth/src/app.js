@@ -6,16 +6,28 @@ import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.routes.js";
+import session from "express-session";
 
 const app = express();
 
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
-app.use("/api/auth", authRoutes);
-app.use(morgan("dev"));
-app.use(passport.initialize());
+app.use(morgan("dev")); 
 
+//Session configuration
+app.use(session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: true,
+}))
+
+//Passport middleware for session handling
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Routes
+app.use("/api/auth", authRoutes);
 
 // Health check endpoint
 app.get("/status/health", (req, res) => {
@@ -37,5 +49,15 @@ passport.use(new GoogleStrategy({
     // Here you can handle the user profile and create a JWT token
     return done(null, profile);
 }));
+
+// Serialize user into the sessions
+passport.serializeUser((user, done) => {
+    done(null, user);
+});
+
+// Deserialize user from the sessions
+passport.deserializeUser((user, done) => {
+    done(null, user);
+});
  
 export default app;

@@ -58,6 +58,11 @@ spec:
             secretKeyRef:
               name:  jwt-secrets
               key:  JWT_SECRET
+        - name:  SESSION_SECRET
+          valueFrom:
+            secretKeyRef:
+              name:  session-secrets
+              key:  SESSION_SECRET
         ports:
         - containerPort:  3000
           name:  auth-http

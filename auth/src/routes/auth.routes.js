@@ -1,6 +1,7 @@
 import {Router} from 'express';
 import passport from 'passport';
-import user from '../models/user.model.js';
+import jwt from 'jsonwebtoken';
+import User from '../models/user.model.js';
 
 const router = Router();
 
@@ -13,20 +14,20 @@ router.get("/google/callback", passport.authenticate('google', { failureRedirect
         const avatar = photos[0].value;
 
         // Check if user already exists
-        let user = await user.findOne({ googleId: id });
-        if (!user) {
+        let existingUser = await User.findOne({ googleId: id });
+        if (!existingUser) {
             // If user doesn't exist, create a new user
-            user = new user({
+            existingUser = new User({
                 googleId: id,
                 email: emails[0].value,
                 name: displayName,
                 avatar: photos[0].value
             });
-            await user.save();
+            await existingUser.save();
         }
 
         // Generate JWT token
-        const token = jwt.sign({id: user._id, email: user.email}, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const token = jwt.sign({id: existingUser._id, email: existingUser.email}, process.env.JWT_SECRET, { expiresIn: '1h' });
 
         res.cookie('token', token, { httpOnly: true });
         res.redirect('/dashboard'); // Redirect to dashboard or any other page
