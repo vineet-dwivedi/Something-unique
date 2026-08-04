@@ -4,6 +4,7 @@ import cors from "cors";
 import { createPods } from "./kubernetes/pod.js";
 import { createService } from "./kubernetes/service.js";
 import { v7 as uuid } from "uuid";
+import { createSandboxKey } from "./config/redis.js";
 
 const app = express();
 app.use(morgan("dev"));
@@ -20,7 +21,8 @@ app.post("/api/sandbox/start", async (req,res)=>{
     const baseDomain = process.env.SANDBOX_BASE_DOMAIN || "127.0.0.1.nip.io";
     await Promise.all([
         createPods(sandboxId),
-        createService(sandboxId)
+        createService(sandboxId),
+        createSandboxKey(sandboxId)
     ])
 
     return res.status(200).json({

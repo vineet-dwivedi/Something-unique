@@ -124,3 +124,14 @@ export async function createPods(sandboxId) {
     });
     return response;
 };
+
+
+export async function deletePods(sandboxId) {
+    const response = await k8sCoreV1Api.deleteNamespacedPod({
+        namespace: 'default',
+        name: `sandbox-pod-${sandboxId}`
+    },{
+        gracePeriodSeconds: 0
+    });
+    return response;
+};
