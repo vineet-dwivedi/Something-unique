@@ -1,15 +1,12 @@
-import mongoose from "mongoose";
-import dns from "dns";
-
-// Fix for Node.js on Windows failing to resolve MongoDB Atlas SRV records
-dns.setDefaultResultOrder("ipv4first");
+import mongoose from 'mongoose';
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log("MongoDB Connected");
-  } catch (err) {
-    console.error("MongoDB connection error:", err);
+    // If process.env.MONGO_URI is undefined, this throws the error
+    const conn = await mongoose.connect(process.env.AUTH_MONGO_URI);
+    console.log(`MongoDB Connected: ${conn.connection.host}`);
+  } catch (error) {
+    console.error(`MongoDB connection error: ${error.message}`);
     process.exit(1);
   }
 };

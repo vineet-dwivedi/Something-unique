@@ -41,7 +41,7 @@ spec:
         - name:  AUTH_MONGO_URI
           valueFrom:
             secretKeyRef:
-              name:  auth-secrets
+              name:  database-secrets
               key:  AUTH
         - name:  GOOGLE_CLIENT_ID
           valueFrom:
