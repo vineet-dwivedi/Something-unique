@@ -30,6 +30,16 @@ spec:
                 secretKeyRef:
                   name: redis-secret
                   key: REDIS_URL
+            - name:  SANDBOX_MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name:  database-secrets
+                  key:  SANDBOX
+            - name:  JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name:  jwt-secrets
+                  key:  JWT_SECRET
           resources:
             limits:
               cpu: "500m"

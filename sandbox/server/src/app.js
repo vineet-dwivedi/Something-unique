@@ -5,6 +5,7 @@ import { createPods } from "./kubernetes/pod.js";
 import { createService } from "./kubernetes/service.js";
 import { v7 as uuid } from "uuid";
 import { createSandboxKey } from "./config/redis.js";
+import cookieParser from "cookieParser";
 
 const app = express();
 app.use(morgan("dev"));

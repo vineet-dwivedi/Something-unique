@@ -23,6 +23,16 @@ spec:
                 secretKeyRef:
                   name: mistral-secret
                   key: MISTRALAI_API_KEY
+            - name:  AI_MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name:  database-secrets
+                  key:  AI
+            - name:  JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name:  jwt-secrets
+                  key:  JWT_SECRET
           imagePullPolicy: IfNotPresent
           resources:
             requests:
