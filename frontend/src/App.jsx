@@ -6,26 +6,91 @@ import FileExplorer from './components/FileExplorer';
 import CodeEditor from './components/CodeEditor';
 import PreviewPanel from './components/PreviewPanel';
 import TerminalPanel from './components/TerminalPanel';
-import { 
-  startSandbox, 
-  listFiles, 
-  readFile, 
-  updateFile, 
-  invokeAiStream 
+import {
+  startSandbox,
+  listFiles,
+  readFile,
+  updateFile,
+  invokeAiStream
 } from './services/api';
 import { MessageSquare, FolderTree } from 'lucide-react';
 
+// ─── Theme helpers ────────────────────────────────────────────
+function getInitialTheme() {
+  try {
+    const saved = localStorage.getItem('knit-theme');
+    if (saved === 'dark' || saved === 'light') return saved;
+  } catch {}
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+}
+
 export default function App() {
-  // Sandbox state
+  // ── Theme ──────────────────────────────────────────────────
+  const [theme, setTheme] = useState(getInitialTheme);
+
+  useEffect(() => {
+    applyTheme(theme);
+    try { localStorage.setItem('knit-theme', theme); } catch {}
+  }, [theme]);
+
+  const handleToggleTheme = (event) => {
+    // Fallback if browser doesn't support View Transitions or if triggered without coordinate event
+    if (!document.startViewTransition) {
+      setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
+      return;
+    }
+
+    // Capture click coordinates or default to center of the viewport
+    const x = event?.clientX ?? window.innerWidth / 2;
+    const y = event?.clientY ?? window.innerHeight / 2;
+    
+    const endRadius = Math.hypot(
+      Math.max(x, window.innerWidth - x),
+      Math.max(y, window.innerHeight - y)
+    );
+
+    const isDark = theme === 'dark';
+
+    const transition = document.startViewTransition(() => {
+      setTheme(isDark ? 'light' : 'dark');
+    });
+
+    transition.ready.then(() => {
+      const clipPath = [
+        `circle(0px at ${x}px ${y}px)`,
+        `circle(${endRadius}px at ${x}px ${y}px)`,
+      ];
+
+      document.documentElement.animate(
+        {
+          clipPath: isDark ? [...clipPath].reverse() : clipPath,
+        },
+        {
+          duration: 450,
+          easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+          pseudoElement: isDark
+            ? '::view-transition-old(root)'
+            : '::view-transition-new(root)',
+        }
+      );
+    });
+  };
+
+
+  // ── Sandbox state ─────────────────────────────────────────
   const [sandboxData, setSandboxData] = useState(null);
   const [loadingSandbox, setLoadingSandbox] = useState(false);
 
-  // Layout & UI controls
-  const [sidebarTab, setSidebarTab] = useState('chat'); // 'chat' | 'files'
-  const [layoutMode, setLayoutMode] = useState('split'); // 'split' | 'code' | 'preview'
+  // ── Layout & UI controls ──────────────────────────────────
+  const [sidebarTab, setSidebarTab] = useState('chat');
+  const [layoutMode, setLayoutMode] = useState('split');
   const [terminalOpen, setTerminalOpen] = useState(true);
 
-  // File management
+  // ── File management ───────────────────────────────────────
   const [fileList, setFileList] = useState([]);
   const [openTabs, setOpenTabs] = useState([]);
   const [activeFile, setActiveFile] = useState(null);
@@ -33,36 +98,28 @@ export default function App() {
   const [unsavedFiles, setUnsavedFiles] = useState({});
   const [isSaving, setIsSaving] = useState(false);
 
-  // Chat & AI Generation state
+  // ── Chat & AI Generation ──────────────────────────────────
   const [messages, setMessages] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [streamLogs, setStreamLogs] = useState([]);
   const [currentLog, setCurrentLog] = useState('');
 
-  // Start Sandbox handler
+  // ── Sandbox handlers ─────────────────────────────────────
   const handleStartSandbox = async () => {
     setLoadingSandbox(true);
     try {
       const data = await startSandbox();
       setSandboxData(data);
-
-      // Initialize welcome chat
       setMessages([
         {
           sender: 'ai',
-          text: `Welcome! Sandbox ${data.sandboxId} initialized successfully. What frontend application or component would you like me to generate?`
-        }
+          text: `Sandbox ready! (${data.sandboxId?.substring(0, 8)}…)\n\nWhat would you like to build? Describe your frontend idea and I'll start writing code.`,
+        },
       ]);
-
-      // Load file tree
       const files = await listFiles(data.agentUrl);
       setFileList(files);
-
-      // Default open src/App.jsx or first file
-      const defaultFile = files.find(f => f.includes('App.jsx')) || files[0];
-      if (defaultFile) {
-        await loadAndOpenFile(data.agentUrl, defaultFile);
-      }
+      const defaultFile = files.find((f) => f.includes('App.jsx')) || files[0];
+      if (defaultFile) await loadAndOpenFile(data.agentUrl, defaultFile);
     } catch (err) {
       console.error('Error starting sandbox:', err);
     } finally {
@@ -70,9 +127,8 @@ export default function App() {
     }
   };
 
-  // Reset/New Sandbox
   const handleNewSandbox = () => {
-    if (window.confirm("Are you sure you want to start a new sandbox container?")) {
+    if (window.confirm('Start a fresh sandbox? Your current session will end.')) {
       setSandboxData(null);
       setFileList([]);
       setOpenTabs([]);
@@ -83,27 +139,24 @@ export default function App() {
     }
   };
 
-  // Helper to load file content and activate tab
+  // ── File helpers ─────────────────────────────────────────
   const loadAndOpenFile = async (agentUrl, filePath) => {
     if (!openTabs.includes(filePath)) {
-      setOpenTabs(prev => [...prev, filePath]);
+      setOpenTabs((prev) => [...prev, filePath]);
     }
     setActiveFile(filePath);
-
     if (fileContents[filePath] === undefined) {
       const content = await readFile(agentUrl, filePath);
-      setFileContents(prev => ({ ...prev, [filePath]: content }));
+      setFileContents((prev) => ({ ...prev, [filePath]: content }));
     }
   };
 
   const handleSelectFile = (filePath) => {
-    if (sandboxData?.agentUrl) {
-      loadAndOpenFile(sandboxData.agentUrl, filePath);
-    }
+    if (sandboxData?.agentUrl) loadAndOpenFile(sandboxData.agentUrl, filePath);
   };
 
   const handleCloseTab = (filePath) => {
-    const nextTabs = openTabs.filter(t => t !== filePath);
+    const nextTabs = openTabs.filter((t) => t !== filePath);
     setOpenTabs(nextTabs);
     if (activeFile === filePath) {
       setActiveFile(nextTabs.length > 0 ? nextTabs[nextTabs.length - 1] : null);
@@ -111,17 +164,16 @@ export default function App() {
   };
 
   const handleContentChange = (filePath, newContent) => {
-    setFileContents(prev => ({ ...prev, [filePath]: newContent }));
-    setUnsavedFiles(prev => ({ ...prev, [filePath]: true }));
+    setFileContents((prev) => ({ ...prev, [filePath]: newContent }));
+    setUnsavedFiles((prev) => ({ ...prev, [filePath]: true }));
   };
 
   const handleSaveFile = async (filePath) => {
     if (!sandboxData?.agentUrl || !filePath) return;
     setIsSaving(true);
     try {
-      const content = fileContents[filePath] || '';
-      await updateFile(sandboxData.agentUrl, filePath, content);
-      setUnsavedFiles(prev => ({ ...prev, [filePath]: false }));
+      await updateFile(sandboxData.agentUrl, filePath, fileContents[filePath] || '');
+      setUnsavedFiles((prev) => ({ ...prev, [filePath]: false }));
     } catch (err) {
       console.error(`Error saving ${filePath}:`, err);
     } finally {
@@ -129,7 +181,6 @@ export default function App() {
     }
   };
 
-  // Refresh file list from sandbox
   const handleRefreshFiles = async () => {
     if (sandboxData?.agentUrl) {
       const files = await listFiles(sandboxData.agentUrl);
@@ -137,58 +188,61 @@ export default function App() {
     }
   };
 
-  // AI Prompt submission
+  // ── AI Message handler ────────────────────────────────────
   const handleSendMessage = (userPrompt) => {
     if (!sandboxData) return;
-
-    const newMessages = [...messages, { sender: 'user', text: userPrompt }];
-    setMessages(newMessages);
+    setMessages((prev) => [...prev, { sender: 'user', text: userPrompt }]);
     setIsGenerating(true);
     setStreamLogs([]);
-    setCurrentLog('Initiating stream connection...');
+    setCurrentLog('Connecting to AI agent…');
 
-    invokeAiStream(
-      userPrompt,
-      sandboxData.sandboxId,
-      {
-        onLog: (logText) => {
-          setStreamLogs(prev => [...prev, logText]);
-          setCurrentLog(logText);
-        },
-        onFinal: (finalText) => {
-          setMessages(prev => [...prev, { sender: 'ai', text: finalText }]);
-        },
-        onDone: async () => {
-          setIsGenerating(false);
-          setCurrentLog('');
-          // Refresh file list & reload active file content
-          if (sandboxData?.agentUrl) {
-            const updatedFiles = await listFiles(sandboxData.agentUrl);
-            setFileList(updatedFiles);
-            if (activeFile) {
-              const freshContent = await readFile(sandboxData.agentUrl, activeFile);
-              setFileContents(prev => ({ ...prev, [activeFile]: freshContent }));
-              setUnsavedFiles(prev => ({ ...prev, [activeFile]: false }));
-            }
+    invokeAiStream(userPrompt, sandboxData.sandboxId, {
+      onLog: (logText) => {
+        setStreamLogs((prev) => [...prev, logText]);
+        setCurrentLog(logText);
+      },
+      onFinal: (finalText) => {
+        setMessages((prev) => [...prev, { sender: 'ai', text: finalText }]);
+      },
+      onDone: async () => {
+        setIsGenerating(false);
+        setCurrentLog('');
+        if (sandboxData?.agentUrl) {
+          const updatedFiles = await listFiles(sandboxData.agentUrl);
+          setFileList(updatedFiles);
+          if (activeFile) {
+            const freshContent = await readFile(sandboxData.agentUrl, activeFile);
+            setFileContents((prev) => ({ ...prev, [activeFile]: freshContent }));
+            setUnsavedFiles((prev) => ({ ...prev, [activeFile]: false }));
           }
-        },
-        onError: (err) => {
-          console.error('SSE Stream Error:', err);
-          setIsGenerating(false);
-          setMessages(prev => [...prev, { sender: 'ai', text: `Error connecting to AI service stream: ${err?.message || String(err) || 'Unknown error'}` }]);
         }
-      }
-    );
+      },
+      onError: (err) => {
+        console.error('SSE Stream Error:', err);
+        setIsGenerating(false);
+        setMessages((prev) => [
+          ...prev,
+          { sender: 'ai', text: `Stream error: ${err?.message || String(err) || 'Unknown error'}` },
+        ]);
+      },
+    });
   };
 
-  // Render Hero landing screen if no active sandbox
+  // ── Render ────────────────────────────────────────────────
+
   if (!sandboxData) {
-    return <Hero onStartSandbox={handleStartSandbox} loading={loadingSandbox} />;
+    return (
+      <Hero
+        onStartSandbox={handleStartSandbox}
+        loading={loadingSandbox}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
+      />
+    );
   }
 
   return (
     <div className="app-container">
-      {/* Top Header */}
       <Header
         sandboxData={sandboxData}
         layoutMode={layoutMode}
@@ -196,25 +250,26 @@ export default function App() {
         onNewSandbox={handleNewSandbox}
         terminalOpen={terminalOpen}
         setTerminalOpen={setTerminalOpen}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
       />
 
-      {/* Main Workspace */}
       <div className="main-workspace">
         {/* Left Sidebar */}
         <aside className="left-sidebar">
           <div className="sidebar-tabs">
-            <button 
+            <button
               className={`tab-item ${sidebarTab === 'chat' ? 'active' : ''}`}
               onClick={() => setSidebarTab('chat')}
             >
-              <MessageSquare size={15} />
+              <MessageSquare size={14} />
               <span>AI Prompt</span>
             </button>
-            <button 
+            <button
               className={`tab-item ${sidebarTab === 'files' ? 'active' : ''}`}
               onClick={() => setSidebarTab('files')}
             >
-              <FolderTree size={15} />
+              <FolderTree size={14} />
               <span>Explorer</span>
             </button>
           </div>
@@ -239,10 +294,9 @@ export default function App() {
           </div>
         </aside>
 
-        {/* Content Area (Code + Wide Preview) */}
+        {/* Main Content */}
         <main className="content-area">
           <div className="split-container">
-            {/* Code Editor (40%) */}
             <div className={`editor-section ${layoutMode === 'preview' ? 'hidden' : ''}`}>
               <CodeEditor
                 openTabs={openTabs}
@@ -257,17 +311,16 @@ export default function App() {
               />
             </div>
 
-            {/* Wide Preview Panel (60%) */}
             <div className={`preview-section ${layoutMode === 'code' ? 'hidden' : ''}`}>
               <PreviewPanel previewUrl={sandboxData.previewUrl} />
             </div>
           </div>
 
-          {/* Bottom Socket.io Terminal Drawer */}
           <TerminalPanel
             agentUrl={sandboxData.agentUrl}
             isCollapsed={!terminalOpen}
             onToggleCollapse={() => setTerminalOpen(!terminalOpen)}
+            theme={theme}
           />
         </main>
       </div>

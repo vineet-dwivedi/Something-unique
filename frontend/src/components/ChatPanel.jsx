@@ -35,9 +35,10 @@ export default function ChatPanel({
     <div className="chat-panel">
       <div className="chat-messages">
         {messages.map((msg, index) => (
-          <div key={index} className="message-item">
-            <div className={`avatar ${msg.sender === 'user' ? 'user-avatar' : 'ai-avatar'}`}>
-              {msg.sender === 'user' ? <User size={16} /> : <Sparkles size={16} />}
+          <div key={index} className={`message-item ${msg.sender === 'user' ? 'user' : 'ai'}`}>
+            <div className="message-header">
+              {msg.sender === 'user' ? <User size={12} className="msg-icon" /> : <Sparkles size={12} className="msg-icon" />}
+              <span className="sender-name">{msg.sender === 'user' ? 'You' : 'Assistant'}</span>
             </div>
             <div className="message-content">
               {msg.text.split('\n').map((paragraph, pIdx) => (
@@ -51,23 +52,23 @@ export default function ChatPanel({
         {isGenerating && (
           <div className="sse-stream-logs">
             <div className="stream-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                 <div className="spinner"></div>
-                <span>AI Sandbox Agent Working...</span>
+                <span>Agent working…</span>
               </div>
-              <span className="badge-glow" style={{ fontSize: '0.7rem' }}>SSE Live</span>
+              <span className="badge-glow" style={{ fontSize: '0.65rem' }}>Live</span>
             </div>
 
             {streamLogs.map((log, idx) => (
               <div key={idx} className="stream-log-line">
-                <CheckCircle2 className="log-icon" size={12} />
+                <CheckCircle2 className="log-icon" size={10} />
                 <span>{log}</span>
               </div>
             ))}
 
             {currentLog && (
-              <div className="stream-log-line" style={{ color: '#818cf8' }}>
-                <Loader2 className="spin-icon" size={12} />
+              <div className="stream-log-line" style={{ color: 'var(--accent)' }}>
+                <Loader2 className="spin-icon" size={10} />
                 <span>{currentLog}</span>
               </div>
             )}
@@ -83,7 +84,7 @@ export default function ChatPanel({
           <textarea
             value={inputPrompt}
             onChange={(e) => setInputPrompt(e.target.value)}
-            placeholder="Ask AI to generate or modify your frontend (e.g. Add dark mode, create responsive navbar...)"
+            placeholder="ask ai to build…"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -94,25 +95,26 @@ export default function ChatPanel({
           />
           <button 
             type="submit" 
-            className="glass-button btn-primary send-btn"
+            className="send-btn"
             disabled={isGenerating || !inputPrompt.trim()}
           >
-            {isGenerating ? <Loader2 className="spin-icon" size={18} /> : <Send size={18} />}
+            {isGenerating ? <Loader2 className="spin-icon" size={15} /> : <Send size={15} />}
           </button>
         </form>
 
         <div className="prompt-suggestions">
-          <button className="chip" onClick={() => handleChipClick("Add animations for winning moves, Improve UI with a dark theme")}>
-            ✨ Dark Theme & Animations
+          <button className="chip" onClick={() => handleChipClick("Add light and dark theme mode with animations")}>
+            theme modes
           </button>
-          <button className="chip" onClick={() => handleChipClick("Add a restart button for quick resets and responsive mobile layout")}>
-            ⚡ Restart Button & Responsive Layout
+          <button className="chip" onClick={() => handleChipClick("Improve layout responsiveness and mobile accessibility")}>
+            responsive layout
           </button>
-          <button className="chip" onClick={() => handleChipClick("Add interactive score counter with glassmorphic cards")}>
-            🎨 Glassmorphic Score Cards
+          <button className="chip" onClick={() => handleChipClick("Add interactive states and subtle hover animations")}>
+            interactive states
           </button>
         </div>
       </div>
     </div>
   );
 }
+

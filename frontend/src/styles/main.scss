@@ -8,34 +8,77 @@
 @use 'preview';
 @use 'terminal';
 
-// Global resets & typography
-* {
+// Google Fonts — loaded via @import to ensure proper SCSS build
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+// ── Global Reset ────────────────────────────────────────────
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-body {
-  background-color: $bg-dark;
-  color: $text-main;
-  font-family: $font-sans;
+html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-size-adjust: 100%;
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: $font-sans;
+  overflow: hidden;
+  transition: background-color 320ms cubic-bezier(0.16, 1, 0.3, 1),
+              color 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+// ── Custom Scrollbars ───────────────────────────────────────
+::-webkit-scrollbar       { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 99px;
+  transition: background 0.2s;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+
+// ── #root override — let app fill screen ───────────────────
+#root {
+  width: 100vw;
+  max-width: 100vw;
+  height: 100vh;
+  margin: 0;
+  text-align: left;
+  border: none;
   overflow: hidden;
 }
 
-/* Custom Scrollbars */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+// ── View Transition Theme Ripple Animation ──────────────────
+::view-transition-image-pair(root) {
+  isolation: auto;
 }
-::-webkit-scrollbar-track {
-  background: transparent;
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+  display: block;
 }
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
+
+// Light to Dark: new theme ripples in over old theme
+::view-transition-old(root) {
+  z-index: 1;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+::view-transition-new(root) {
+  z-index: 9999;
 }
+
+// Dark to Light: old theme shrinks away, revealing new theme
+[data-theme="dark"]::view-transition-old(root) {
+  z-index: 9999;
+}
+[data-theme="dark"]::view-transition-new(root) {
+  z-index: 1;
+}
+

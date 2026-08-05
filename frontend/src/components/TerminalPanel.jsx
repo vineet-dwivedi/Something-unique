@@ -1,37 +1,88 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { io } from 'socket.io-client';
-import { Terminal as TermIcon, Trash2, RefreshCw, ChevronUp, ChevronDown, Minimize2 } from 'lucide-react';
+import { Terminal as TermIcon, Trash2, RefreshCw, ChevronUp, ChevronDown } from 'lucide-react';
 import '@xterm/xterm/css/xterm.css';
 
-export default function TerminalPanel({ agentUrl, isCollapsed, onToggleCollapse }) {
+const getTerminalTheme = (themeName) => {
+  const isDark = themeName === 'dark';
+  return {
+    background: isDark ? '#0e0d0c' : '#f0eeec',
+    foreground: isDark ? '#f0ede9' : '#1a1714',
+    cursor: isDark ? '#8db89e' : '#7a9e88',
+    selectionBackground: isDark ? 'rgba(141, 184, 158, 0.25)' : 'rgba(122, 158, 136, 0.25)',
+    black: isDark ? '#131210' : '#fafaf9',
+    red: isDark ? '#d4918f' : '#c47b7b',
+    green: isDark ? '#8db89e' : '#5a9068',
+    yellow: isDark ? '#d4ab52' : '#b8943a',
+    blue: isDark ? '#82aec9' : '#6b97b5',
+    magenta: isDark ? '#c47b7b' : '#c47b7b',
+    cyan: isDark ? '#82aec9' : '#6b97b5',
+    white: isDark ? '#f0ede9' : '#1a1714'
+  };
+};
+
+const MIN_HEIGHT = 100;
+const MAX_HEIGHT_RATIO = 0.8;
+const DEFAULT_HEIGHT = 220;
+
+export default function TerminalPanel({ agentUrl, isCollapsed, onToggleCollapse, theme }) {
   const terminalRef = useRef(null);
   const xtermInstance = useRef(null);
   const fitAddonRef = useRef(null);
   const socketRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [height, setHeight] = useState(DEFAULT_HEIGHT);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // ── Resize via drag handle ───────────────────────────────
+  const handleMouseDown = useCallback((e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const onMove = (e) => {
+      const maxH = window.innerHeight * MAX_HEIGHT_RATIO;
+      const newH = window.innerHeight - e.clientY;
+      setHeight(Math.max(MIN_HEIGHT, Math.min(newH, maxH)));
+    };
+
+    const onUp = () => setIsDragging(false);
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    // Prevent text selection while dragging
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'row-resize';
+
+    return () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+  }, [isDragging]);
+
+  // Refit xterm whenever height changes
+  useEffect(() => {
+    if (!isCollapsed) {
+      requestAnimationFrame(() => {
+        try { fitAddonRef.current?.fit(); } catch {}
+      });
+    }
+  }, [height, isCollapsed]);
 
   useEffect(() => {
     if (!terminalRef.current) return;
 
-    // Create xterm terminal instance with soft pastel dark theme
+    // Create xterm terminal instance with dynamic pastel theme mapping
     const term = new Terminal({
       cursorBlink: true,
-      theme: {
-        background: '#0a0e17',
-        foreground: '#f1f5f9',
-        cursor: '#c084fc',
-        selectionBackground: 'rgba(192, 132, 252, 0.3)',
-        black: '#0f141c',
-        red: '#fda4af',
-        green: '#6ee7b7',
-        yellow: '#fde047',
-        blue: '#93c5fd',
-        magenta: '#d8b4fe',
-        cyan: '#bae6fd',
-        white: '#f1f5f9'
-      },
+      theme: getTerminalTheme(theme),
       fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace",
       fontSize: 13,
       lineHeight: 1.4,
@@ -111,6 +162,13 @@ export default function TerminalPanel({ agentUrl, isCollapsed, onToggleCollapse 
     };
   }, [agentUrl]);
 
+  useEffect(() => {
+    if (xtermInstance.current) {
+      xtermInstance.current.options.theme = getTerminalTheme(theme);
+    }
+  }, [theme]);
+
+
   // Local fallback command line behavior when offline
   const currentLineRef = useRef('');
   const handleLocalFallbackInput = (data, term) => {
@@ -149,8 +207,32 @@ export default function TerminalPanel({ agentUrl, isCollapsed, onToggleCollapse 
     }
   };
 
+  // Double-click the drag handle to reset to default height
+  const handleDoubleClick = useCallback(() => {
+    setHeight(DEFAULT_HEIGHT);
+  }, []);
+
+  const drawerStyle = isCollapsed
+    ? {}
+    : { height: `${height}px` };
+
   return (
-    <div className={`terminal-drawer ${isCollapsed ? 'collapsed' : ''}`}>
+    <div
+      className={`terminal-drawer ${isCollapsed ? 'collapsed' : ''} ${isDragging ? 'is-resizing' : ''}`}
+      style={drawerStyle}
+    >
+      {/* ── Resize drag handle ─ */}
+      {!isCollapsed && (
+        <div
+          className="terminal-resize-handle"
+          onMouseDown={handleMouseDown}
+          onDoubleClick={handleDoubleClick}
+          title="Drag to resize · Double-click to reset"
+        >
+          <div className="resize-grip" />
+        </div>
+      )}
+
       <div className="terminal-header">
         <div className="terminal-title">
           <TermIcon size={14} />
@@ -182,3 +264,4 @@ export default function TerminalPanel({ agentUrl, isCollapsed, onToggleCollapse 
     </div>
   );
 }
+
