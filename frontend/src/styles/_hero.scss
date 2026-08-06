@@ -344,6 +344,37 @@
   gap: 1rem;
   animation: fadeUp 0.5s var(--ease) 0.45s both;
 
+  // Project name input row
+  .project-name-row {
+    width: 100%;
+    max-width: 380px;
+  }
+
+  .project-name-input {
+    width: 100%;
+    padding: 0.7rem 1.1rem;
+    border-radius: var(--radius-lg);
+    background: var(--bg-surface);
+    border: 1.5px solid var(--border-subtle);
+    color: var(--text-primary);
+    font-family: $font-sans;
+    font-size: 0.95rem;
+    outline: none;
+    transition:
+      border-color var(--dur-fast) var(--ease-out),
+      box-shadow var(--dur-fast) var(--ease-out);
+    box-sizing: border-box;
+
+    &::placeholder { color: var(--text-muted); }
+
+    &:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(var(--accent-rgb, 99 102 241) / 0.18);
+    }
+
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+  }
+
   .start-btn {
     display: inline-flex;
     align-items: center;

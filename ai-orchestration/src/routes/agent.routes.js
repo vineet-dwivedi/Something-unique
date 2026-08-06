@@ -11,7 +11,6 @@ agentRouter.post("/invoke", async (req, res) => {
         'Cache-Control': 'no-cache, no-transform',
         'Connection': 'keep-alive',
         'X-Accel-Buffering': 'no',
-        'Access-Control-Allow-Origin': '*'
     });
 
     res.flushHeaders?.();
@@ -35,18 +34,44 @@ agentRouter.post("/invoke", async (req, res) => {
             lastState = state;
         }
 
+        let finalContent = "";
+
         if (lastState?.messages?.length) {
             const msgs = lastState.messages;
+            // First search for the last non-empty AI text message without tool calls
             for (let i = msgs.length - 1; i >= 0; i--) {
                 const m = msgs[i];
                 const role = m.role ?? m._getType?.();
                 if ((role === 'ai' || role === 'assistant') && !m.tool_calls?.length) {
                     const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
-                    writeEvent("final", content);
-                    break;
+                    if (content && content.trim()) {
+                        finalContent = content;
+                        break;
+                    }
+                }
+            }
+
+            // Fallback: search for any AI message content if no non-tool-call message was found
+            if (!finalContent) {
+                for (let i = msgs.length - 1; i >= 0; i--) {
+                    const m = msgs[i];
+                    const role = m.role ?? m._getType?.();
+                    if (role === 'ai' || role === 'assistant') {
+                        const content = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
+                        if (content && content.trim()) {
+                            finalContent = content;
+                            break;
+                        }
+                    }
                 }
             }
         }
+
+        if (!finalContent) {
+            finalContent = "I have updated the project code in your sandbox! Check out the live preview.";
+        }
+
+        writeEvent("final", finalContent);
 
         writeEvent("done", "[DONE]");
         res.end();

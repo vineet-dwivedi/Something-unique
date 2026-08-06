@@ -118,3 +118,57 @@ flowchart TD
 | `GET /read-files` | `sandbox-agent:3000` | Read project workspace files |
 | `PATCH /update-files` | `sandbox-agent:3000` | Save/update file content in `/workspace` |
 | `*.preview.127.0.0.1.nip.io` | `router-service:80` | Reverse proxy for Vite live preview (:5173) |
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Integrate these apis
+
+POST http://localhost/api/sandbox/project
+which accpet data like this
+{
+  "title":"test"
+}
+and return response like this
+{
+    "message": "Project created successfully",
+    "project": {
+        "user": "6a7171457dd4d287893fbc70",
+        "title": "test",
+        "_id": "6a743a9f516bfee46b79d68d",
+        "__v": 0
+    }
+}
+
+POST http://localhost/api/sandbox/start
+which accpet data like this
+{
+    "projectId": "6a743a9f516bfee46b79d68d"
+}
+and return response like this
+{
+    "message": "Sandbox started successfully!",
+    "sandboxId": "019fd605-3171-730c-b950-48ec286eb072",
+    "previewUrl": "http://019fd605-3171-730c-b950-48ec286eb072.preview.127.0.0.1.nip.io",
+    "agentUrl": "http://019fd605-3171-730c-b950-48ec286eb072.agent.127.0.0.1.nip.io"
+}
+
+GET http://localhost/api/sandbox/projects
+it return response like this
+{
+    message: 'Project retrived successfully',
+    projects
+}
+
+all these apis are protected so mkae sure to include credentials well when making api

@@ -1,11 +1,26 @@
 import express from 'express';
 import morgan from 'morgan';
 import { createProxyMiddleware } from 'http-proxy-middleware';
+import { proxyUpgrade } from 'httpxy';
 import http from 'http';
 import {refreshTTL} from './config/redis.js';
 
 const app = express();
 app.use(morgan('combined'))
+
+// Enable CORS for all incoming requests (including subdomains and preflight OPTIONS)
+app.use((req, res, next) => {
+    const origin = req.headers.origin || '*';
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(204);
+    }
+    next();
+});
 
 app.get('/api/status/healthz', (req,res)=>{
     res.status(200).json({status: 'ok'});
@@ -26,7 +41,6 @@ function getProxy(sandboxId){
         proxies[sandboxId] = createProxyMiddleware({
             target,
             changeOrigin: true,
-            ws: true,
             timeout: 600000,
             proxyTimeout: 600000,
             on: {
@@ -55,7 +69,6 @@ function getAgentProxy(sandboxId){
         agentProxies[sandboxId] = createProxyMiddleware({
             target,
             changeOrigin: true,
-            ws: true,
             timeout: 600000,
             proxyTimeout: 600000,
             on: {
@@ -108,19 +121,17 @@ server.on('upgrade', (req, socket, head) => {
         console.log('WS upgrade request for sandbox:', sandboxId, type);
 
         if (type === 'agent') {
-            const proxy = getAgentProxy(sandboxId);
-            if (typeof proxy.upgrade === 'function') {
-                proxy.upgrade(req, socket, head);
-            } else if (typeof proxy === 'function') {
-                proxy(req, socket, head);
-            }
+            const target = `http://sandbox-service-${sandboxId}:3000`;
+            proxyUpgrade(target, req, socket, head).catch((err) => {
+                console.error(`WS proxy upgrade error for agent sandbox ${sandboxId}:`, err);
+                try { socket.destroy(); } catch (_) {}
+            });
         } else if (type === 'preview') {
-            const proxy = getProxy(sandboxId);
-            if (typeof proxy.upgrade === 'function') {
-                proxy.upgrade(req, socket, head);
-            } else if (typeof proxy === 'function') {
-                proxy(req, socket, head);
-            }
+            const target = `http://sandbox-service-${sandboxId}`;
+            proxyUpgrade(target, req, socket, head).catch((err) => {
+                console.error(`WS proxy upgrade error for preview sandbox ${sandboxId}:`, err);
+                try { socket.destroy(); } catch (_) {}
+            });
         } else {
             socket.destroy();
         }

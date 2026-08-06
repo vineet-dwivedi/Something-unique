@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Sparkles, Terminal, Zap, ArrowRight, Quote } from 'lucide-react';
 import KnitLogo from './KnitLogo';
 
@@ -21,6 +21,12 @@ const FEATURES = [
 ];
 
 export default function Hero({ onStartSandbox, loading, theme, onToggleTheme }) {
+  const [projectTitle, setProjectTitle] = useState('');
+
+  const handleLaunch = () => {
+    onStartSandbox(projectTitle.trim() || 'My Project');
+  };
+
   return (
     <div className="hero-screen">
       {/* Subtle ambient background */}
@@ -137,9 +143,23 @@ export default function Hero({ onStartSandbox, loading, theme, onToggleTheme }) 
 
         {/* CTA */}
         <div className="hero-cta">
+          <div className="project-name-row">
+            <input
+              className="project-name-input"
+              type="text"
+              placeholder="Project name (e.g. Portfolio Site)"
+              value={projectTitle}
+              onChange={(e) => setProjectTitle(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !loading && handleLaunch()}
+              disabled={loading}
+              maxLength={80}
+              id="project-name-input"
+            />
+          </div>
+
           <button
             className="start-btn"
-            onClick={onStartSandbox}
+            onClick={handleLaunch}
             disabled={loading}
             id="start-sandbox-btn"
           >

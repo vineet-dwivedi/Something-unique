@@ -1,24 +1,70 @@
 /**
  * API Service for AI Sandbox operations
- * Handles sandbox creation, file listing/reading/updating, and SSE stream for AI invocation.
+ * Handles project creation, sandbox creation, file listing/reading/updating, and SSE stream for AI invocation.
+ *
+ * All requests to protected sandbox endpoints include `credentials: 'include'` so the
+ * httpOnly `token` cookie (set by the auth service after Google OAuth) is forwarded automatically.
  */
 
 const BASE_API_URL = 'http://localhost/api';
 
 /**
- * Start a new sandbox
+ * Create a new project
+ * POST /api/sandbox/project  { title }
+ * @param {string} title - Project name
+ * @returns {{ message: string, project: { _id: string, title: string, user: string } }}
  */
-export async function startSandbox() {
+export async function createProject(title) {
+  const response = await fetch(`${BASE_API_URL}/sandbox/project`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',           // send the auth cookie
+    body: JSON.stringify({ title }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.message || `Failed to create project (${response.status})`);
+  }
+
+  return response.json();
+}
+
+/**
+ * List all projects belonging to the logged-in user
+ * GET /api/sandbox/projects
+ * @returns {{ message: string, projects: Array }}
+ */
+export async function listProjects() {
+  const response = await fetch(`${BASE_API_URL}/sandbox/projects`, {
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.message || `Failed to fetch projects (${response.status})`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Start a sandbox for an existing project
+ * POST /api/sandbox/start  { projectId }
+ * @param {string} projectId - The _id of the project returned by createProject
+ */
+export async function startSandbox(projectId) {
   try {
     const response = await fetch(`${BASE_API_URL}/sandbox/start`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',         // send the auth cookie
+      body: JSON.stringify({ projectId }),
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to start sandbox: ${response.statusText}`);
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.message || `Failed to start sandbox (${response.status})`);
     }
 
     return await response.json();
@@ -27,11 +73,11 @@ export async function startSandbox() {
     // Mock fallback when local API server is not active
     const mockId = `sb-${Math.random().toString(36).substring(2, 10)}`;
     return {
-      message: "Sandbox started successfully! (Demo Mode)",
+      message: 'Sandbox started successfully! (Demo Mode)',
       sandboxId: mockId,
       previewUrl: `http://localhost:5173`,
       agentUrl: `http://localhost:3000`,
-      isMock: true
+      isMock: true,
     };
   }
 }
@@ -140,9 +186,10 @@ export async function invokeAiStream(message, projectId, callbacks = {}) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'text/event-stream, text/plain, */*'
+        'Accept': 'text/event-stream, text/plain, */*',
       },
-      body: JSON.stringify({ message, projectId })
+      credentials: 'include',         // send the auth cookie
+      body: JSON.stringify({ message, projectId }),
     });
 
     if (!response.ok) {

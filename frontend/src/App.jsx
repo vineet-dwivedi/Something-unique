@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import ChatPanel from './components/ChatPanel';
@@ -7,6 +7,7 @@ import CodeEditor from './components/CodeEditor';
 import PreviewPanel from './components/PreviewPanel';
 import TerminalPanel from './components/TerminalPanel';
 import {
+  createProject,
   startSandbox,
   listFiles,
   readFile,
@@ -103,12 +104,17 @@ export default function App() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [streamLogs, setStreamLogs] = useState([]);
   const [currentLog, setCurrentLog] = useState('');
+  const finalBufferRef = useRef(''); // accumulates all 'final' SSE chunks
 
   // ── Sandbox handlers ─────────────────────────────────────
-  const handleStartSandbox = async () => {
+  const handleStartSandbox = async (projectTitle = 'My Project') => {
     setLoadingSandbox(true);
     try {
-      const data = await startSandbox();
+      // Step 1: create the project record (protected route — cookie sent via credentials: include)
+      const { project } = await createProject(projectTitle);
+
+      // Step 2: spin up the sandbox pod using the returned project _id
+      const data = await startSandbox(project._id);
       setSandboxData(data);
       setMessages([
         {
@@ -202,9 +208,16 @@ export default function App() {
         setCurrentLog(logText);
       },
       onFinal: (finalText) => {
-        setMessages((prev) => [...prev, { sender: 'ai', text: finalText }]);
+        // Accumulate — the server may fire multiple 'final' events for one response
+        finalBufferRef.current += (finalBufferRef.current ? '\n' : '') + finalText;
       },
       onDone: async () => {
+        // Flush the buffer as one single AI message bubble
+        const fullText = finalBufferRef.current.trim();
+        finalBufferRef.current = '';
+        if (fullText) {
+          setMessages((prev) => [...prev, { sender: 'ai', text: fullText }]);
+        }
         setIsGenerating(false);
         setCurrentLog('');
         if (sandboxData?.agentUrl) {

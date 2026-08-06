@@ -46,7 +46,7 @@ router.get("/google/callback", passport.authenticate('google', { failureRedirect
         );
 
         res.cookie('token', token, { httpOnly: true });
-        res.redirect('/'); // Redirect to your frontend after successful login
+        res.redirect('http://localhost:5173'); // Redirect to your frontend after successful login
     } catch (error) {
         console.error("Error during Google authentication callback:", error);
         res.redirect('/'); // Redirect to your frontend on error

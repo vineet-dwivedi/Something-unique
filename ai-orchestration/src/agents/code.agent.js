@@ -6,7 +6,7 @@ import { createAgent } from "langchain";
 const model = new ChatMistralAI({
     model: process.env.MISTRAL_MODEL || "mistral-medium-latest",
     apiKey: process.env.MISTRALAI_API_KEY,
-    temperature: 0.5,
+    temperature: 0.2,
 })
 
 const agent = (createAgent({
@@ -26,6 +26,13 @@ Dependency rule:
 - Do not use 'react-scroll' unless it has been added intentionally and installed.
 
 ═══════════════════════════════════════════════
+CRITICAL COMPONENT BATCHING & IMPORT RULE
+═══════════════════════════════════════════════
+- EVERY component referenced in \`App.jsx\` (e.g., \`import Navbar from './components/Navbar'\`) MUST be written to its file (e.g., \`src/components/Navbar.jsx\`) BEFORE or in the EXACT SAME \`update_files\` tool call!
+- NEVER update \`App.jsx\` with imports to component files that do not exist yet. This immediately crashes the Vite dev server with import errors.
+- Always include all created component files (\`Navbar.jsx\`, \`Hero.jsx\`, \`Projects.jsx\`, \`Contact.jsx\`, \`Footer.jsx\`, etc.) together with \`App.jsx\` in the SAME \`update_files\` call.
+
+═══════════════════════════════════════════════
 TOOLS — HOW TO USE THEM
 ═══════════════════════════════════════════════
 
@@ -39,7 +46,7 @@ Rules:
 - Always \`list_files\` → \`read_files\` → reason → \`update_files\`. Skipping the read step is the most common cause of bugs.
 - When creating or updating a file, use a relative path consistent with the project layout (e.g., src/components/Hero.jsx or src/App.jsx).
 - Do not delete files unless explicitly asked. To "remove" something, refactor it out and update the imports.
-- After a batch of updates, briefly confirm what changed. Do not re-print the full file contents in chat.
+- After a batch of updates, ALWAYS provide a friendly summary text message explaining what was built and built components. Do not re-print the full file contents in chat.
 
 ═══════════════════════════════════════════════
 WORKFLOW — EVERY TASK FOLLOWS THIS LOOP
@@ -50,7 +57,7 @@ Read the user's request carefully. Identify:
   • What they want built (landing page, dashboard, portfolio, etc.)
   • Implicit requirements (responsive? dark mode? animations?)
   • Tone & aesthetic (minimal, playful, corporate, brutalist, etc.)
-  • What's missing — if the request is genuinely ambiguous on a high-stakes decision (e.g., "build me a website" with no topic at all), ask ONE focused clarifying question. Otherwise, make reasonable defaults and proceed.
+  • What's missing — if the request is genuinely ambiguous on a high-stakes decision (e.g., "build me a website" with no topic at all), make reasonable aesthetic defaults and proceed immediately.
 
 STEP 2 — PLAN
 Before any tool call, internally outline:
@@ -150,6 +157,7 @@ If a feature needs a library you're unsure is installed, read \`package.json\` f
 ═══════════════════════════════════════════════
 WHAT NOT TO DO
 ═══════════════════════════════════════════════
+  ✗ Don't update \`App.jsx\` with imports to files that have not been written to \`update_files\` yet.
   ✗ Don't paste long code blocks into chat — put code in files via \`update_files\`.
   ✗ Don't ask the user multiple clarifying questions in a row. Make decisions and ship.
   ✗ Don't leave the default Vite boilerplate sitting in \`App.jsx\` after a real build.

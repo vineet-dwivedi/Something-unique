@@ -1,37 +1,25 @@
 import express from "express";
 import morgan from "morgan";
 import cors from "cors";
-import { createPods } from "./kubernetes/pod.js";
-import { createService } from "./kubernetes/service.js";
-import { v7 as uuid } from "uuid";
-import { createSandboxKey } from "./config/redis.js";
-import cookieParser from "cookieParser";
+import cookieParser from "cookie-parser";
+import sandboxRouter from "./routes/sandbox.routes.js";
 
 const app = express();
 app.use(morgan("dev"));
-app.use(cors());
+app.use(cors({
+  origin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 app.get("/api/sandbox/health",(req,res)=>{
     res.status(200).json({message:"Server is healthy!"})
 })
 
-app.post("/api/sandbox/start", async (req,res)=>{
-    const sandboxId = uuid();
-    const baseDomain = process.env.SANDBOX_BASE_DOMAIN || "127.0.0.1.nip.io";
-    await Promise.all([
-        createPods(sandboxId),
-        createService(sandboxId),
-        createSandboxKey(sandboxId)
-    ])
-
-    return res.status(200).json({
-        message: "Sandbox started successfully!",
-        sandboxId,
-        previewUrl: `http://${sandboxId}.preview.${baseDomain}`,
-        agentUrl: `http://${sandboxId}.agent.${baseDomain}`
-    });
-});
+app.use("/api/sandbox",sandboxRouter);
 
 export default app;
