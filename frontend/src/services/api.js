@@ -180,6 +180,14 @@ export async function updateFile(agentUrl, filePath, content) {
  */
 export async function invokeAiStream(message, projectId, callbacks = {}) {
   const { onLog, onFinal, onDone, onError } = callbacks;
+  let finished = false;
+  let errored = false;
+
+  const finishOnce = () => {
+    if (finished || errored) return;
+    finished = true;
+    if (onDone) onDone();
+  };
   
   try {
     const response = await fetch(`${BASE_API_URL}/ai/invoke`, {
@@ -193,7 +201,22 @@ export async function invokeAiStream(message, projectId, callbacks = {}) {
     });
 
     if (!response.ok) {
-      throw new Error(`AI invoke failed with status: ${response.status}`);
+      let errorMessage = `AI invoke failed with status: ${response.status}`;
+      const contentType = response.headers.get('content-type') || '';
+
+      try {
+        if (contentType.includes('application/json')) {
+          const payload = await response.json();
+          errorMessage = payload?.error || payload?.message || errorMessage;
+        } else {
+          const text = await response.text();
+          if (text.trim()) {
+            errorMessage = text.trim();
+          }
+        }
+      } catch {}
+
+      throw new Error(errorMessage);
     }
 
     const reader = response.body.getReader();
@@ -222,23 +245,32 @@ export async function invokeAiStream(message, projectId, callbacks = {}) {
             if (onLog) onLog(dataText);
           } else if (currentEvent === 'final') {
             if (onFinal) onFinal(dataText);
+          } else if (currentEvent === 'error') {
+            errored = true;
+            if (onError) onError(new Error(dataText));
+            return;
           } else if (currentEvent === 'done' || dataText === '[DONE]') {
-            if (onDone) onDone();
+            finishOnce();
           } else {
             if (onLog) onLog(dataText);
           }
         } else if (line === 'log' || line === 'final' || line === 'done') {
           currentEvent = line;
         } else if (line === '[DONE]') {
-          if (onDone) onDone();
+          finishOnce();
         } else {
           if (currentEvent === 'log' && onLog) onLog(line);
           if (currentEvent === 'final' && onFinal) onFinal(line);
+          if (currentEvent === 'error') {
+            errored = true;
+            if (onError) onError(new Error(line));
+            return;
+          }
         }
       }
     }
 
-    if (onDone) onDone();
+    finishOnce();
   } catch (error) {
     console.error("API AI Invoke Stream Error:", error);
     if (onError) onError(error);

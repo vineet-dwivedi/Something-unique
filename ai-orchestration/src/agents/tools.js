@@ -27,6 +27,24 @@ function resolveToolBaseUrl(config) {
     throw new Error("Missing sandbox routing context. Provide apiBaseUrl or projectId.");
 }
 
+function getToolContext(config) {
+    const context = config.context ?? {};
+
+    if (!context.readCache) {
+        context.readCache = new Map();
+    }
+
+    if (typeof context.readCacheVersion !== "number") {
+        context.readCacheVersion = 0;
+    }
+
+    if (!Array.isArray(context.updatedFiles)) {
+        context.updatedFiles = [];
+    }
+
+    return context;
+}
+
 export function createAgentTools(apiBaseUrl) {
     const baseUrl = trimTrailingSlash(apiBaseUrl);
 
@@ -88,7 +106,7 @@ export const listFiles = tool(
 
         const response = await axios.get(`${baseUrl}/list-files`)
 
-        writer("Files listed successfully." + "Files: " + response.data.files.join(",") + "\n");
+        writer("Files listed successfully. Files: " + response.data.files.join(",") + "\n");
 
         return JSON.stringify(response.data.files);
     },
@@ -104,13 +122,24 @@ export const readFiles = tool(
 
         const writer = config.context?.writer ?? (() => {});
         const baseUrl = resolveToolBaseUrl(config);
+        const context = getToolContext(config);
+        const normalizedFiles = files.map((file) => String(file));
+        const cacheKey = `${context.readCacheVersion}:${normalizedFiles.join(",")}`;
 
-        writer("Reading files..." + files.join(",") + "\n");
+        if (context.readCache.has(cacheKey)) {
+            writer("Reading files..." + normalizedFiles.join(",") + "\n");
+            writer("Files read successfully.\n");
+            return context.readCache.get(cacheKey);
+        }
 
-        const response = await axios.get(`${baseUrl}/read-files?files=` + encodeURIComponent(files.join(",")))
+        writer("Reading files..." + normalizedFiles.join(",") + "\n");
+
+        const response = await axios.get(`${baseUrl}/read-files?files=` + encodeURIComponent(normalizedFiles.join(",")))
 
         writer("Files read successfully.\n");
-        return JSON.stringify(response.data);
+        const payload = JSON.stringify(response.data);
+        context.readCache.set(cacheKey, payload);
+        return payload;
     },
     {
         name: "read_files",
@@ -125,9 +154,12 @@ export const updateFiles = tool(
     async ({ files }, config) => {
         const writer = config.context?.writer ?? (() => {});
         const baseUrl = resolveToolBaseUrl(config);
+        const context = getToolContext(config);
 
         writer("Updating files..." + files.map(f => f.file).join(",") + "\n");
-        config.context.updatedFiles?.push(...files.map((file) => file.file));
+        context.updatedFiles.push(...files.map((file) => file.file));
+        context.readCacheVersion += 1;
+        context.readCache.clear();
 
 
         const response = await axios.patch(`${baseUrl}/update-files`, {

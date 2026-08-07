@@ -23,6 +23,11 @@ spec:
                 secretKeyRef:
                   name: mistral-secret
                   key: MISTRALAI_API_KEY
+            - name: PUTER_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: puter-secret
+                  key: PUTER_AUTH_TOKEN
             - name:  AI_MONGO_URI
               valueFrom:
                 secretKeyRef:
