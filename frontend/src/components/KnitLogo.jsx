@@ -21,24 +21,24 @@ export default function KnitLogo({ size = 26, className = '' }) {
       aria-label="Knit Dev logo"
     >
       <defs>
-        {/* Dusky gradient — rose ➜ amber ➜ sage */}
+        {/* Loom palette — madder ➜ weld ➜ sage */}
         <linearGradient id={`${id}-bg`} x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="var(--logo-a, #c9a0a0)" />
-          <stop offset="50%" stopColor="var(--logo-b, #c4ab7a)" />
-          <stop offset="100%" stopColor="var(--logo-c, #8faa93)" />
+          <stop offset="0%" stopColor="var(--thread-madder, #C1452E)" />
+          <stop offset="50%" stopColor="var(--thread-weld, #C99A3E)" />
+          <stop offset="100%" stopColor="var(--thread-sage, #7E9473)" />
         </linearGradient>
 
         <linearGradient id={`${id}-thread`} x1="6" y1="6" x2="26" y2="26" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="var(--logo-thread-a, #b08585)" />
-          <stop offset="100%" stopColor="var(--logo-thread-b, #6d8e76)" />
+          <stop offset="0%" stopColor="var(--thread-madder, #C1452E)" />
+          <stop offset="100%" stopColor="var(--thread-sage, #7E9473)" />
         </linearGradient>
       </defs>
 
-      {/* Rounded background pill */}
+      {/* Rectilinear background (2px radius) */}
       <rect
         width="32"
         height="32"
-        rx="8"
+        rx="2"
         fill={`url(#${id}-bg)`}
         opacity="0.14"
       />

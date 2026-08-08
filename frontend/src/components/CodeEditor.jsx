@@ -1,13 +1,13 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { Save, X, FileCode, Check } from 'lucide-react';
 
-export default function CodeEditor({ 
-  openTabs, 
-  activeFile, 
-  onSelectTab, 
-  onCloseTab, 
-  fileContents, 
-  onContentChange, 
+export default function CodeEditor({
+  openTabs,
+  activeFile,
+  onSelectTab,
+  onCloseTab,
+  fileContents,
+  onContentChange,
   onSaveFile,
   unsavedFiles,
   isSaving
@@ -32,9 +32,9 @@ export default function CodeEditor({
 
   if (!activeFile) {
     return (
-      <div className="code-editor-container" style={{ justifyContent: 'center', alignItems: 'center', color: '#64748b' }}>
-        <FileCode size={48} style={{ opacity: 0.3 }} />
-        <p style={{ marginTop: '1rem', fontSize: '0.9rem' }}>Select a file from the explorer to open in code editor</p>
+      <div className="code-editor-container empty-editor-state">
+        <FileCode size={36} className="empty-icon" />
+        <p className="empty-state-copy">No file open. Pick one from Explorer to start editing.</p>
       </div>
     );
   }
@@ -51,22 +51,23 @@ export default function CodeEditor({
           const isTabDirty = unsavedFiles[tabPath];
 
           return (
-            <div 
-              key={tabPath} 
+            <div
+              key={tabPath}
               className={`editor-tab ${isActive ? 'active' : ''}`}
               onClick={() => onSelectTab(tabPath)}
             >
-              <span>{fileName}</span>
-              {isTabDirty && <span className="unsaved-dot" title="Unsaved changes"></span>}
-              <span 
-                className="close-tab-btn" 
+              <span className="tab-name">{fileName}</span>
+              {isTabDirty && <span className="unsaved-weld-dot" title="Unsaved changes" />}
+              <button
+                className="close-tab-btn"
                 onClick={(e) => {
                   e.stopPropagation();
                   onCloseTab(tabPath);
                 }}
+                aria-label={`Close tab ${fileName}`}
               >
-                <X size={12} />
-              </span>
+                <X size={11} />
+              </button>
             </div>
           );
         })}
@@ -77,17 +78,17 @@ export default function CodeEditor({
         <div className="filepath-label">{activeFile}</div>
         <div className="save-indicator">
           {isDirty ? (
-            <span style={{ color: '#f59e0b', fontSize: '0.78rem' }}>• Unsaved changes</span>
+            <span className="status-unsaved">• Unsaved changes</span>
           ) : (
-            <span style={{ color: '#10b981', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+            <span className="status-saved">
               <Check size={12} /> Saved
             </span>
           )}
-          <button 
-            className="glass-button btn-sm btn-primary" 
+          <button
+            className="square-action-btn save-btn"
             onClick={() => onSaveFile(activeFile)}
             disabled={!isDirty || isSaving}
-            style={{ padding: '0.2rem 0.6rem', marginLeft: '0.5rem' }}
+            title="Save file (Ctrl+S)"
           >
             <Save size={12} />
             <span>Save</span>
@@ -98,8 +99,8 @@ export default function CodeEditor({
       {/* Editor Canvas */}
       <div className="editor-canvas-wrapper">
         <div className="line-numbers">
-          {lineNumbers.map(num => (
-            <div key={num}>{num}</div>
+          {lineNumbers.map((num) => (
+            <div key={num} className="line-num">{num}</div>
           ))}
         </div>
         <textarea

@@ -1,87 +1,80 @@
 @use 'variables' as *;
 
+// ─────────────────────────────────────────────────────────────
+// Terminal Drawer — Loom Design System
+// ─────────────────────────────────────────────────────────────
+
 .terminal-drawer {
+  min-height: 100px;
+  max-height: 80vh;
+  border-top: 1px solid var(--border-thread);
+  background-color: var(--bg-surface);
   display: flex;
   flex-direction: column;
-  height: 100%;
-  width: 100%;
-  background: var(--bg-sunken);
-  overflow: hidden;
-  transition: background var(--dur-slow) var(--ease);
+  flex-shrink: 0;
+  position: relative;
+  transition: height 200ms cubic-bezier(0.4, 0, 0.2, 1);
 
-  // ── Resize Drag Handle ────────────────────────────────────
+  &.is-resizing {
+    transition: none !important;
+  }
+
+  &.collapsed {
+    height: 36px !important;
+    min-height: 36px;
+    overflow: hidden;
+  }
+
   .terminal-resize-handle {
     height: 6px;
-    flex-shrink: 0;
+    width: 100%;
     cursor: row-resize;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: transparent;
-    transition: background var(--dur-fast) var(--ease);
-    position: relative;
-    z-index: 10;
-
-    &:hover {
-      background: var(--bg-hover);
-
-      .resize-grip {
-        opacity: 0.7;
-        width: 48px;
-      }
-    }
-
-    &:active {
-      background: var(--accent-bg);
-
-      .resize-grip {
-        opacity: 1;
-        background: var(--accent);
-      }
-    }
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 20;
 
     .resize-grip {
-      width: 32px;
+      width: 36px;
       height: 2px;
-      border-radius: var(--radius-full);
-      background: var(--border-default);
-      opacity: 0.4;
-      transition: all var(--dur-fast) var(--ease);
+      background-color: var(--border-thread-strong);
+      border-radius: 1px;
     }
   }
 
-  // ── Header ───────────────────────────────────────────────
   .terminal-header {
-    height: 34px;
-    padding: 0 0.875rem;
-    background: var(--bg-elevated);
-    border-bottom: 1px solid var(--border-subtle);
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    padding: 0 0.85rem;
+    background-color: var(--bg-surface);
+    border-bottom: 1px solid var(--border-thread);
     flex-shrink: 0;
-    transition: background var(--dur-slow) var(--ease);
 
     .terminal-title {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
+      gap: 0.55rem;
+      font-family: $font-mono;
+      font-size: 0.76rem;
+      color: var(--text-primary);
 
-      .status-indicator {
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background: var(--success);
-        animation: pulse 2.5s ease-in-out infinite;
+      .terminal-status-badge {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        margin-left: 0.5rem;
 
-        &.disconnected {
-          background: var(--danger);
-          animation: none;
+        .status-label {
+          font-family: $font-mono;
+          font-size: 0.72rem;
+
+          &.is-connected { color: var(--thread-sage); }
+          &.is-offline { color: var(--thread-madder); }
         }
       }
     }
@@ -89,45 +82,49 @@
     .terminal-actions {
       display: flex;
       align-items: center;
-      gap: 0.25rem;
+      gap: 0.35rem;
 
-      .term-action-btn {
-        padding: 0.2rem 0.4rem;
-        border-radius: var(--radius-sm);
-        background: transparent;
-        border: none;
-        color: var(--text-muted);
-        cursor: pointer;
-        display: flex;
+      .square-action-btn, .term-action-btn {
+        display: inline-flex;
         align-items: center;
-        transition: all var(--dur-fast) var(--ease-out);
+        justify-content: center;
+        width: 26px;
+        height: 26px;
+        padding: 0;
+        background-color: var(--bg-raised);
+        border: 1px solid var(--border-thread-strong);
+        border-radius: $radius-sm;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all var(--dur-fast) ease;
+
+        svg {
+          stroke: currentColor;
+          fill: none;
+        }
 
         &:hover {
-          background: var(--bg-hover);
           color: var(--text-primary);
+          border-color: var(--thread-madder);
+          background-color: var(--bg-surface);
+        }
+
+        &:active {
+          transform: translateY(1px);
         }
       }
     }
   }
 
-  // ── Body ─────────────────────────────────────────────────
   .terminal-body {
     flex: 1;
+    background-color: var(--bg-void);
     padding: 0.4rem;
     overflow: hidden;
-    position: relative;
-    background: var(--bg-sunken);
-    transition: background var(--dur-slow) var(--ease);
 
     .xterm {
       height: 100%;
       width: 100%;
-      padding: 0.2rem;
     }
   }
-}
-
-@keyframes pulse {
-  0%, 100% { transform: scale(0.9); opacity: 0.7; }
-  50%       { transform: scale(1.2); opacity: 1;   }
 }

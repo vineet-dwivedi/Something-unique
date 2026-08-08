@@ -6,7 +6,59 @@
  * httpOnly `token` cookie (set by the auth service after Google OAuth) is forwarded automatically.
  */
 
-const BASE_API_URL = 'http://localhost/api';
+const BASE_API_URL = import.meta.env?.VITE_API_URL || 'http://localhost/api';
+const AUTH_API_URL = import.meta.env?.VITE_AUTH_URL || `${BASE_API_URL}/auth`;
+const FALLBACK_AUTH_URL = 'http://localhost:3000/api/auth';
+
+/**
+ * Fetch current authenticated user
+ * GET /api/auth/me
+ * @returns {Promise<{ authenticated: boolean, user: { id: string, email: string, name: string, avatar: string } | null }>}
+ */
+export async function fetchCurrentUser() {
+  try {
+    let response;
+    try {
+      response = await fetch(`${AUTH_API_URL}/me`, { credentials: 'include' });
+    } catch {
+      // Fallback to direct auth server port if ingress isn't running locally
+      response = await fetch(`${FALLBACK_AUTH_URL}/me`, { credentials: 'include' });
+    }
+
+    if (!response.ok) {
+      return { authenticated: false, user: null };
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.warn('Auth check unavailable:', error);
+    return { authenticated: false, user: null };
+  }
+}
+
+/**
+ * Logout current user
+ * POST /api/auth/logout
+ */
+export async function logoutUser() {
+  try {
+    try {
+      await fetch(`${AUTH_API_URL}/logout`, { method: 'POST', credentials: 'include' });
+    } catch {
+      await fetch(`${FALLBACK_AUTH_URL}/logout`, { method: 'POST', credentials: 'include' });
+    }
+  } catch (error) {
+    console.warn('Logout request failed:', error);
+  }
+}
+
+/**
+ * Get Google OAuth Login redirect URL
+ */
+export function getGoogleLoginUrl() {
+  // If ingress or proxy is live, use AUTH_API_URL, else direct auth server port 3000
+  return `${AUTH_API_URL}/google`;
+}
 
 /**
  * Create a new project
@@ -210,11 +262,11 @@ export async function invokeAiStream(message, projectId, callbacks = {}) {
           errorMessage = payload?.error || payload?.message || errorMessage;
         } else {
           const text = await response.text();
-          if (text.trim()) {
-            errorMessage = text.trim();
-          }
+          if (text) errorMessage = text;
         }
-      } catch {}
+      } catch {
+        /* ignore parse error for stream response */
+      }
 
       throw new Error(errorMessage);
     }

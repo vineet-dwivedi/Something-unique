@@ -1,25 +1,26 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { io } from 'socket.io-client';
 import { Terminal as TermIcon, Trash2, RefreshCw, ChevronUp, ChevronDown } from 'lucide-react';
+import ThreadLine from './ThreadLine';
 import '@xterm/xterm/css/xterm.css';
 
-const getTerminalTheme = (themeName) => {
+const getLoomTerminalTheme = (themeName) => {
   const isDark = themeName === 'dark';
   return {
-    background: isDark ? '#0e0d0c' : '#f0eeec',
-    foreground: isDark ? '#f0ede9' : '#1a1714',
-    cursor: isDark ? '#8db89e' : '#7a9e88',
-    selectionBackground: isDark ? 'rgba(141, 184, 158, 0.25)' : 'rgba(122, 158, 136, 0.25)',
-    black: isDark ? '#131210' : '#fafaf9',
-    red: isDark ? '#d4918f' : '#c47b7b',
-    green: isDark ? '#8db89e' : '#5a9068',
-    yellow: isDark ? '#d4ab52' : '#b8943a',
+    background: isDark ? '#14120F' : '#F3EEE3',
+    foreground: isDark ? '#F2EDE4' : '#14120F',
+    cursor: isDark ? '#C99A3E' : '#A67A2E',
+    selectionBackground: isDark ? 'rgba(201, 154, 62, 0.25)' : 'rgba(166, 122, 46, 0.25)',
+    black: isDark ? '#14120F' : '#F3EEE3',
+    red: isDark ? '#C1452E' : '#A83A26',
+    green: isDark ? '#7E9473' : '#5F7657',
+    yellow: isDark ? '#C99A3E' : '#A67A2E',
     blue: isDark ? '#82aec9' : '#6b97b5',
-    magenta: isDark ? '#c47b7b' : '#c47b7b',
-    cyan: isDark ? '#82aec9' : '#6b97b5',
-    white: isDark ? '#f0ede9' : '#1a1714'
+    magenta: isDark ? '#C1452E' : '#A83A26',
+    cyan: isDark ? '#7E9473' : '#5F7657',
+    white: isDark ? '#F2EDE4' : '#14120F'
   };
 };
 
@@ -36,7 +37,7 @@ export default function TerminalPanel({ agentUrl, isCollapsed, onToggleCollapse,
   const [height, setHeight] = useState(DEFAULT_HEIGHT);
   const [isDragging, setIsDragging] = useState(false);
 
-  // ── Resize via drag handle ───────────────────────────────
+  // Resize via drag handle
   const handleMouseDown = useCallback((e) => {
     e.preventDefault();
     setIsDragging(true);
@@ -55,7 +56,6 @@ export default function TerminalPanel({ agentUrl, isCollapsed, onToggleCollapse,
 
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
-    // Prevent text selection while dragging
     document.body.style.userSelect = 'none';
     document.body.style.cursor = 'row-resize';
 
@@ -67,11 +67,36 @@ export default function TerminalPanel({ agentUrl, isCollapsed, onToggleCollapse,
     };
   }, [isDragging]);
 
+  const currentLineRef = useRef('');
+
+  const handleLocalFallbackInput = useCallback((data, term) => {
+    if (data === '\r') {
+      term.write('\r\n');
+      const cmd = currentLineRef.current.trim();
+      if (cmd === 'clear') {
+        term.clear();
+      } else if (cmd.length > 0) {
+        term.writeln(`\x1b[33mCommand: ${cmd}\x1b[0m`);
+        term.writeln('Output: [Knit Dev shell mode - command acknowledged]');
+      }
+      term.write('$ ');
+      currentLineRef.current = '';
+    } else if (data === '\u007F') {
+      if (currentLineRef.current.length > 0) {
+        currentLineRef.current = currentLineRef.current.slice(0, -1);
+        term.write('\b \b');
+      }
+    } else {
+      currentLineRef.current += data;
+      term.write(data);
+    }
+  }, []);
+
   // Refit xterm whenever height changes
   useEffect(() => {
     if (!isCollapsed) {
       requestAnimationFrame(() => {
-        try { fitAddonRef.current?.fit(); } catch {}
+        try { fitAddonRef.current?.fit(); } catch { /* ignore fit error */ }
       });
     }
   }, [height, isCollapsed]);
@@ -79,11 +104,10 @@ export default function TerminalPanel({ agentUrl, isCollapsed, onToggleCollapse,
   useEffect(() => {
     if (!terminalRef.current) return;
 
-    // Create xterm terminal instance with dynamic pastel theme mapping
     const term = new Terminal({
       cursorBlink: true,
-      theme: getTerminalTheme(theme),
-      fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace",
+      theme: getLoomTerminalTheme(theme),
+      fontFamily: "'Commit Mono', 'IBM Plex Mono', Consolas, monospace",
       fontSize: 13,
       lineHeight: 1.4,
       scrollback: 1000
@@ -100,7 +124,6 @@ export default function TerminalPanel({ agentUrl, isCollapsed, onToggleCollapse,
     term.writeln('\x1b[1;35m🚀 Knit Dev Terminal Session Connected\x1b[0m');
     term.writeln('\x1b[90mSocket Event Channel: terminal-input / terminal-output\x1b[0m\r\n');
 
-    // Connect Socket.io client to agentUrl
     if (agentUrl) {
       try {
         const socket = io(agentUrl, {
@@ -122,23 +145,19 @@ export default function TerminalPanel({ agentUrl, isCollapsed, onToggleCollapse,
           term.writeln('\r\n\x1b[31m✖ Disconnected from socket backend\x1b[0m\r\n');
         });
 
-        // Listen for terminal output from backend
         socket.on('terminal-output', (data) => {
           term.write(data);
         });
 
-        // Listen for user input on xterm & send to socket
         term.onData((data) => {
           if (socket.connected) {
             socket.emit('terminal-input', data);
           } else {
-            // Local fallback echo when socket is not active
             handleLocalFallbackInput(data, term);
           }
         });
       } catch (err) {
         console.warn('Socket connection error:', err);
-        setIsConnected(false);
       }
     } else {
       term.onData((data) => handleLocalFallbackInput(data, term));
@@ -147,7 +166,7 @@ export default function TerminalPanel({ agentUrl, isCollapsed, onToggleCollapse,
     const handleResize = () => {
       try {
         fitAddon.fit();
-      } catch (e) {
+      } catch {
         // ignore resize during hidden transitions
       }
     };
@@ -160,40 +179,13 @@ export default function TerminalPanel({ agentUrl, isCollapsed, onToggleCollapse,
       }
       term.dispose();
     };
-  }, [agentUrl]);
+  }, [agentUrl, handleLocalFallbackInput, theme]);
 
   useEffect(() => {
     if (xtermInstance.current) {
-      xtermInstance.current.options.theme = getTerminalTheme(theme);
+      xtermInstance.current.options.theme = getLoomTerminalTheme(theme);
     }
   }, [theme]);
-
-
-  // Local fallback command line behavior when offline
-  const currentLineRef = useRef('');
-  const handleLocalFallbackInput = (data, term) => {
-    if (data === '\r') {
-      term.write('\r\n');
-      const cmd = currentLineRef.current.trim();
-      if (cmd === 'clear') {
-        term.clear();
-      } else if (cmd.length > 0) {
-        term.writeln(`\x1b[33mCommand: ${cmd}\x1b[0m`);
-        term.writeln('Output: [Knit Dev shell mode - command acknowledged]');
-      }
-      term.write('$ ');
-      currentLineRef.current = '';
-    } else if (data === '\u007F') {
-      // Backspace
-      if (currentLineRef.current.length > 0) {
-        currentLineRef.current = currentLineRef.current.slice(0, -1);
-        term.write('\b \b');
-      }
-    } else {
-      currentLineRef.current += data;
-      term.write(data);
-    }
-  };
 
   const handleClear = () => {
     if (xtermInstance.current) {
@@ -207,21 +199,17 @@ export default function TerminalPanel({ agentUrl, isCollapsed, onToggleCollapse,
     }
   };
 
-  // Double-click the drag handle to reset to default height
   const handleDoubleClick = useCallback(() => {
     setHeight(DEFAULT_HEIGHT);
   }, []);
 
-  const drawerStyle = isCollapsed
-    ? {}
-    : { height: `${height}px` };
+  const drawerStyle = isCollapsed ? {} : { height: `${height}px` };
 
   return (
     <div
       className={`terminal-drawer ${isCollapsed ? 'collapsed' : ''} ${isDragging ? 'is-resizing' : ''}`}
       style={drawerStyle}
     >
-      {/* ── Resize drag handle ─ */}
       {!isCollapsed && (
         <div
           className="terminal-resize-handle"
@@ -235,23 +223,32 @@ export default function TerminalPanel({ agentUrl, isCollapsed, onToggleCollapse,
 
       <div className="terminal-header">
         <div className="terminal-title">
-          <TermIcon size={14} />
-          <span>Knit Dev Terminal (xterm.js)</span>
-          <span className={`status-indicator ${isConnected ? '' : 'disconnected'}`}></span>
-          <span style={{ fontSize: '0.72rem', color: isConnected ? '#6ee7b7' : '#fda4af' }}>
-            {isConnected ? 'Connected' : 'Offline / Standby'}
-          </span>
+          <TermIcon size={13} />
+          <span className="title-text">Knit Dev Terminal</span>
+          {/* Connection Status: Knot SVG supplementing text label */}
+          <div className="terminal-status-badge">
+            <ThreadLine
+              variant="knot"
+              active={isConnected}
+              color={isConnected ? 'var(--thread-sage)' : 'var(--thread-madder)'}
+              width={14}
+              height={14}
+            />
+            <span className={`status-label ${isConnected ? 'is-connected' : 'is-offline'}`}>
+              {isConnected ? 'Connected' : 'Offline / Standby'}
+            </span>
+          </div>
         </div>
 
         <div className="terminal-actions">
-          <button className="term-action-btn" onClick={handleClear} title="Clear Terminal">
-            <Trash2 size={13} />
+          <button className="square-action-btn" onClick={handleClear} title="Clear Terminal">
+            <Trash2 size={12} />
           </button>
-          <button className="term-action-btn" onClick={handleReconnect} title="Reconnect Socket">
-            <RefreshCw size={13} />
+          <button className="square-action-btn" onClick={handleReconnect} title="Reconnect Socket">
+            <RefreshCw size={12} />
           </button>
-          <button className="term-action-btn" onClick={onToggleCollapse} title="Toggle Terminal Height">
-            {isCollapsed ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          <button className="square-action-btn" onClick={onToggleCollapse} title="Toggle Terminal Drawer">
+            {isCollapsed ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
           </button>
         </div>
       </div>
@@ -264,4 +261,3 @@ export default function TerminalPanel({ agentUrl, isCollapsed, onToggleCollapse,
     </div>
   );
 }
-

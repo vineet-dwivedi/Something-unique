@@ -1,21 +1,16 @@
-import React, { useState, useMemo } from 'react';
-import { 
-  Folder, 
-  FolderOpen, 
-  FileCode, 
-  FileText, 
-  FileJson, 
-  FileSpreadsheet, 
+import { useState, useMemo } from 'react';
+import {
+  Folder,
+  FolderOpen,
+  FileCode,
+  FileText,
+  FileJson,
   Image as ImageIcon,
-  ChevronRight, 
-  ChevronDown, 
-  Search,
+  ChevronRight,
+  ChevronDown,
   RefreshCw
 } from 'lucide-react';
 
-/**
- * Builds a hierarchical tree structure from flat file path strings
- */
 function buildFileTree(files) {
   const root = {};
 
@@ -42,48 +37,55 @@ function buildFileTree(files) {
 
 function getFileIcon(fileName) {
   if (fileName.endsWith('.jsx') || fileName.endsWith('.js') || fileName.endsWith('.tsx') || fileName.endsWith('.ts')) {
-    return <FileCode className="node-icon js-icon" size={16} />;
+    return <FileCode className="node-icon js-icon" size={14} />;
   }
   if (fileName.endsWith('.css') || fileName.endsWith('.scss')) {
-    return <FileCode className="node-icon css-icon" size={16} />;
+    return <FileCode className="node-icon css-icon" size={14} />;
   }
   if (fileName.endsWith('.json')) {
-    return <FileJson className="node-icon json-icon" size={16} />;
+    return <FileJson className="node-icon json-icon" size={14} />;
   }
   if (fileName.endsWith('.html')) {
-    return <FileText className="node-icon html-icon" size={16} />;
+    return <FileText className="node-icon html-icon" size={14} />;
   }
   if (fileName.endsWith('.png') || fileName.endsWith('.svg') || fileName.endsWith('.jpg')) {
-    return <ImageIcon className="node-icon" size={16} />;
+    return <ImageIcon className="node-icon" size={14} />;
   }
-  return <FileText className="node-icon" size={16} />;
+  return <FileText className="node-icon" size={14} />;
 }
 
-function TreeNode({ node, activeFile, onSelectFile }) {
+function TreeNode({ node, activeFile, onSelectFile, level = 0 }) {
   const [open, setOpen] = useState(true);
 
   if (node.isDir) {
     const childrenArray = Object.values(node.children);
     return (
-      <div>
-        <div 
-          className="tree-node"
+      <div className="tree-dir-node">
+        <div
+          className="tree-node dir-row"
           onClick={() => setOpen(!open)}
-          style={{ paddingLeft: '0.75rem' }}
+          style={{ paddingLeft: `${0.5 + level * 0.75}rem` }}
         >
-          {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-          {open ? <FolderOpen className="node-icon folder-icon" size={16} /> : <Folder className="node-icon folder-icon" size={16} />}
+          {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+          {open ? <FolderOpen className="node-icon folder-icon" size={14} /> : <Folder className="node-icon folder-icon" size={14} />}
           <span className="file-name">{node.name}</span>
         </div>
 
         {open && (
-          <div style={{ paddingLeft: '0.75rem' }}>
+          <div className="tree-children-container">
+            {/* Thin vertical thread linking parent to children */}
+            <div
+              className="vertical-thread-line"
+              style={{ left: `${0.85 + level * 0.75}rem` }}
+              aria-hidden="true"
+            />
             {childrenArray.map((child) => (
-              <TreeNode 
-                key={child.path} 
-                node={child} 
-                activeFile={activeFile} 
-                onSelectFile={onSelectFile} 
+              <TreeNode
+                key={child.path}
+                node={child}
+                activeFile={activeFile}
+                onSelectFile={onSelectFile}
+                level={level + 1}
               />
             ))}
           </div>
@@ -95,10 +97,10 @@ function TreeNode({ node, activeFile, onSelectFile }) {
   const isActive = activeFile === node.path || activeFile === `/${node.path}`;
 
   return (
-    <div 
-      className={`tree-node ${isActive ? 'active' : ''}`}
+    <div
+      className={`tree-node file-row ${isActive ? 'is-active-file' : ''}`}
       onClick={() => onSelectFile(node.path)}
-      style={{ paddingLeft: '1.5rem' }}
+      style={{ paddingLeft: `${1.2 + level * 0.75}rem` }}
     >
       {getFileIcon(node.name)}
       <span className="file-name">{node.name}</span>
@@ -120,22 +122,21 @@ export default function FileExplorer({ files, activeFile, onSelectFile, onRefres
   return (
     <div className="file-explorer">
       <div className="explorer-header">
-        <span className="title">Sandbox Files</span>
-        <button 
-          onClick={onRefresh} 
-          className="glass-button btn-sm" 
+        <span className="mono-title">[ FILES ]</span>
+        <button
+          onClick={onRefresh}
+          className="square-action-btn btn-sm"
           title="Refresh File List"
-          style={{ padding: '0.2rem 0.4rem' }}
         >
-          <RefreshCw size={13} />
+          <RefreshCw size={12} />
         </button>
       </div>
 
       <div className="search-box">
-        <input 
-          type="text" 
-          className="glass-input" 
-          placeholder="Filter files..." 
+        <input
+          type="text"
+          className="mono-search-input"
+          placeholder="Filter files..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
@@ -143,11 +144,12 @@ export default function FileExplorer({ files, activeFile, onSelectFile, onRefres
 
       <div className="file-tree">
         {treeNodes.map((node) => (
-          <TreeNode 
-            key={node.path} 
-            node={node} 
-            activeFile={activeFile} 
-            onSelectFile={onSelectFile} 
+          <TreeNode
+            key={node.path}
+            node={node}
+            activeFile={activeFile}
+            onSelectFile={onSelectFile}
+            level={0}
           />
         ))}
       </div>

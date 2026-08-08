@@ -1,92 +1,78 @@
 @use 'variables' as *;
 
 // ─────────────────────────────────────────────────────────────
-// Global Reset & Base
+// App Shell & Workspace Layout — Loom Design System
 // ─────────────────────────────────────────────────────────────
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
 
-html {
-  font-size: 16px;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-body {
-  background-color: var(--bg-base);
-  color: var(--text-primary);
-  font-family: $font-sans;
-  overflow: hidden;
-  transition: background-color var(--dur-slow) var(--ease), color var(--dur-slow) var(--ease);
-}
-
-// ─────────────────────────────────────────────────────────────
-// Scrollbars — minimal
-// ─────────────────────────────────────────────────────────────
-::-webkit-scrollbar       { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb {
-  background: var(--border-default);
-  border-radius: var(--radius-full);
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--border-strong);
-}
-
-// ─────────────────────────────────────────────────────────────
-// App Shell
-// ─────────────────────────────────────────────────────────────
 .app-container {
   display: flex;
   flex-direction: column;
   height: 100vh;
   width: 100vw;
-  background-color: var(--bg-base);
-  overflow: hidden;
+  background-color: var(--bg-void);
   color: var(--text-primary);
   font-family: $font-sans;
-  transition: background-color var(--dur-slow) var(--ease);
+  overflow: hidden;
 }
 
 // ─────────────────────────────────────────────────────────────
-// Top Header
+// Top Header (40-44px compact bar)
 // ─────────────────────────────────────────────────────────────
 .top-header {
-  height: 52px;
+  height: 42px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 1.25rem;
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 0 1rem;
+  border-bottom: 1px solid var(--border-thread);
   background: var(--bg-surface);
   z-index: 50;
   flex-shrink: 0;
-  transition: background var(--dur-slow) var(--ease), border-color var(--dur-slow) var(--ease);
 
   .header-left {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 1.2rem;
 
     .brand-logo {
       display: flex;
       align-items: center;
-      gap: 0.55rem;
-      font-weight: 700;
-      font-size: 1rem;
-      color: var(--text-primary);
-      letter-spacing: -0.02em;
+      gap: 0.5rem;
 
-      .knit-logo {
-        flex-shrink: 0;
-        transition: transform var(--dur-fast) var(--ease);
+      .brand-title {
+        font-family: $font-sans;
+        font-weight: 600;
+        font-size: 0.88rem;
+        letter-spacing: -0.01em;
+        color: var(--text-primary);
+      }
+    }
+
+    .mono-sandbox-id {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-family: $font-mono;
+      font-size: 0.76rem;
+      color: var(--text-secondary);
+      transition: color var(--dur-fast) ease;
+
+      &.is-copied {
+        color: var(--thread-sage);
       }
 
-      &:hover .knit-logo {
-        transform: rotate(-8deg) scale(1.08);
+      .copy-id-btn {
+        background: transparent;
+        border: none;
+        color: inherit;
+        cursor: pointer;
+        padding: 2px;
+        display: inline-flex;
+        align-items: center;
+
+        &:hover {
+          color: var(--text-primary);
+        }
       }
     }
   }
@@ -94,36 +80,48 @@ body {
   .header-center {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
 
-    .layout-switcher {
+    .layout-segmented-control {
       display: flex;
-      background: var(--bg-elevated);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-md);
-      padding: 3px;
+      background-color: var(--bg-raised);
+      border: 1px solid var(--border-thread);
+      border-radius: $radius-sm;
+      padding: 2px;
       gap: 2px;
+      position: relative;
 
-      .layout-btn {
-        display: flex;
+      .segmented-btn {
+        position: relative;
+        display: inline-flex;
+        flex-direction: column;
         align-items: center;
-        gap: 0.35rem;
-        padding: 0.3rem 0.65rem;
-        font-size: 0.75rem;
+        justify-content: center;
+        padding: 0.25rem 0.65rem;
+        font-family: $font-sans;
+        font-size: 0.76rem;
         font-weight: 500;
         border: none;
         background: transparent;
-        color: var(--text-muted);
-        border-radius: var(--radius-sm);
+        color: var(--text-secondary);
+        border-radius: $radius-sm;
         cursor: pointer;
-        transition: all var(--dur-fast) var(--ease-out);
+        transition: color var(--dur-fast) ease;
 
-        &:hover { color: var(--text-primary); background: var(--bg-hover); }
+        &:hover {
+          color: var(--text-primary);
+        }
 
         &.active {
-          background: var(--bg-surface);
           color: var(--text-primary);
-          box-shadow: var(--shadow-xs);
+          font-weight: 600;
+        }
+
+        .tab-thread-line {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          width: 100%;
         }
       }
     }
@@ -132,82 +130,158 @@ body {
   .header-right {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.4rem;
+
+    .header-user-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 2px 6px;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-thread);
+      border-radius: $radius-sm;
+
+      .user-avatar-img {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .user-avatar-fallback {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background-color: var(--thread-madder);
+        color: #fff;
+        font-family: $font-mono;
+        font-size: 0.65rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .user-name-text {
+        font-family: $font-mono;
+        font-size: 0.72rem;
+        color: var(--text-primary);
+        max-width: 100px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .logout-btn {
+        width: 20px;
+        height: 20px;
+        padding: 0;
+        border: none;
+        background: transparent;
+      }
+    }
+  }
+
+  .square-action-btn, .square-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    height: 28px;
+    min-width: 28px;
+    padding: 0 0.55rem;
+    background-color: var(--bg-raised);
+    border: 1px solid var(--border-thread-strong);
+    border-radius: $radius-sm;
+    font-family: $font-sans;
+    font-size: 0.76rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    text-decoration: none;
+    transition: all var(--dur-fast) ease;
+
+    svg {
+      stroke: currentColor;
+      fill: none;
+      flex-shrink: 0;
+    }
+
+    &:hover {
+      color: var(--text-primary);
+      border-color: var(--thread-madder);
+      background-color: var(--bg-surface);
+    }
+
+    &.active-term {
+      border-color: var(--thread-weld);
+      color: var(--thread-weld);
+      background-color: var(--bg-surface);
+    }
   }
 }
 
 // ─────────────────────────────────────────────────────────────
-// Main Workspace
+// Main Workspace Structure
 // ─────────────────────────────────────────────────────────────
 .main-workspace {
   flex: 1;
   display: flex;
   overflow: hidden;
+  position: relative;
 }
 
 // ─────────────────────────────────────────────────────────────
-// Left Sidebar
+// Left Sidebar (AI Prompt / File Explorer)
 // ─────────────────────────────────────────────────────────────
 .left-sidebar {
-  width: 340px;
+  width: 320px;
   min-width: 280px;
-  max-width: 440px;
+  max-width: 420px;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--border-subtle);
+  border-right: 1px solid var(--border-thread);
   background: var(--bg-surface);
-  transition: width var(--dur-slow) var(--ease), background var(--dur-slow) var(--ease);
   z-index: 10;
-
-  &.collapsed {
-    width: 0;
-    min-width: 0;
-    overflow: hidden;
-    border-right: none;
-  }
 
   .sidebar-tabs {
     display: flex;
-    border-bottom: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-thread);
     background: var(--bg-surface);
     flex-shrink: 0;
+    position: relative;
 
     .tab-item {
+      position: relative;
       flex: 1;
-      padding: 0.9rem 1rem;
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text-muted);
+      padding: 0.65rem 0.75rem;
+      font-family: $font-mono;
+      font-size: 0.74rem;
+      font-weight: 500;
+      color: var(--text-secondary);
       background: transparent;
       border: none;
-      border-bottom: 1.5px solid transparent;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0.45rem;
-      transition:
-        color var(--dur-fast) var(--ease-out),
-        border-color var(--dur-fast) var(--ease-out);
-
-      svg {
-        opacity: 0.45;
-        transition: opacity var(--dur-fast) var(--ease-out);
-        width: 13px;
-        height: 13px;
-      }
+      gap: 0.4rem;
+      transition: color var(--dur-fast) ease;
 
       &:hover {
         color: var(--text-primary);
-        svg { opacity: 0.75; }
       }
 
       &.active {
         color: var(--text-primary);
-        border-bottom-color: var(--accent);
-        svg { opacity: 1; color: var(--accent); }
+        font-weight: 600;
+      }
+
+      .sidebar-tab-thread {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
       }
     }
   }
@@ -221,15 +295,14 @@ body {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Content Area
+// Main Content & Split Container
 // ─────────────────────────────────────────────────────────────
 .content-area {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--bg-base);
-  transition: background var(--dur-slow) var(--ease);
+  background: var(--bg-void);
 
   .split-container {
     flex: 1;
@@ -237,76 +310,49 @@ body {
     overflow: hidden;
 
     .editor-section {
-      flex: 4;
+      flex: 5;
       min-width: 260px;
       display: flex;
       flex-direction: column;
-      border-right: 1px solid var(--border-subtle);
-      background: var(--bg-sunken);
-      transition: background var(--dur-slow) var(--ease);
+      border-right: 1px solid var(--border-thread);
+      background: var(--bg-surface);
 
       &.hidden { display: none; }
     }
 
     .preview-section {
-      flex: 6;
-      min-width: 360px;
+      flex: 5;
+      min-width: 320px;
       display: flex;
       flex-direction: column;
-      background: var(--bg-base);
-      transition: background var(--dur-slow) var(--ease);
+      background: var(--bg-void);
 
       &.hidden { display: none; }
     }
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// Terminal Drawer
-// ─────────────────────────────────────────────────────────────
-.terminal-drawer {
-  min-height: 100px;
-  max-height: 80vh;
-  border-top: 1px solid var(--border-subtle);
-  background: var(--bg-sunken);
-  display: flex;
-  flex-direction: column;
-  transition: height 0.2s var(--ease), background var(--dur-slow) var(--ease);
-  flex-shrink: 0;
-  position: relative;
-
-  // Kill the height transition while actively dragging
-  &.is-resizing {
-    transition: none;
+// Responsive layout stacking for small screens / mobile width
+@media (max-width: 900px) {
+  .main-workspace {
+    flex-direction: column;
   }
 
-  &.collapsed {
-    height: 36px !important;
-    min-height: 36px;
-    overflow: hidden;
+  .left-sidebar {
+    width: 100%;
+    max-width: 100%;
+    height: 380px;
+    border-right: none;
+    border-bottom: 1px solid var(--border-thread);
   }
-}
 
-// ─────────────────────────────────────────────────────────────
-// Theme Toggle Button
-// ─────────────────────────────────────────────────────────────
-.theme-toggle {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-default);
-  background: var(--bg-elevated);
-  color: var(--text-secondary);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all var(--dur-fast) var(--ease-out);
-  flex-shrink: 0;
+  .content-area .split-container {
+    flex-direction: column;
 
-  &:hover {
-    background: var(--bg-hover);
-    color: var(--text-primary);
-    border-color: var(--border-strong);
+    .editor-section {
+      border-right: none;
+      border-bottom: 1px solid var(--border-thread);
+      min-height: 250px;
+    }
   }
 }

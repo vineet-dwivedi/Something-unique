@@ -10,6 +10,19 @@ import session from "express-session";
 
 const app = express();
 
+// CORS Middleware for frontend credentials
+app.use((req, res, next) => {
+  const origin = req.headers.origin || 'http://localhost:5173';
+  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
+});
+
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
@@ -42,9 +55,9 @@ app.get("/status/ready", (req, res) => {
 
 // Passport configuration
 passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: "/api/auth/google/callback"
+    clientID: (process.env.GOOGLE_CLIENT_ID || '').trim(),
+    clientSecret: (process.env.GOOGLE_CLIENT_SECRET || '').trim(),
+    callbackURL: process.env.GOOGLE_CALLBACK_URL || "/api/auth/google/callback"
 }, (accessToken, refreshToken, profile, done) => {
     // Here you can handle the user profile and create a JWT token
     return done(null, profile);

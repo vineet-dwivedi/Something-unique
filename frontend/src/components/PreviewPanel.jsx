@@ -1,15 +1,6 @@
-import React, { useState, useRef } from 'react';
-import { 
-  RefreshCw, 
-  RotateCw, 
-  ExternalLink, 
-  Monitor, 
-  Tablet, 
-  Smartphone, 
-  Lock, 
-  Copy, 
-  Check 
-} from 'lucide-react';
+import { useState, useRef } from 'react';
+import { RotateCw, Lock, Copy, Check, Monitor, Tablet, Smartphone } from 'lucide-react';
+import ThreadLine from './ThreadLine';
 
 export default function PreviewPanel({ previewUrl }) {
   const [viewport, setViewport] = useState('desktop'); // desktop, tablet, mobile
@@ -18,7 +9,7 @@ export default function PreviewPanel({ previewUrl }) {
   const iframeRef = useRef(null);
 
   const handleRefresh = () => {
-    setIframeKey(prev => prev + 1);
+    setIframeKey((prev) => prev + 1);
   };
 
   const handleCopyUrl = () => {
@@ -34,44 +25,45 @@ export default function PreviewPanel({ previewUrl }) {
       {/* Address Bar & Browser Controls */}
       <div className="preview-address-bar">
         <div className="nav-controls">
-          <button className="nav-btn" onClick={handleRefresh} title="Reload Preview">
-            <RotateCw size={14} />
+          <button className="square-action-btn" onClick={handleRefresh} title="Reload Preview">
+            <RotateCw size={13} />
           </button>
         </div>
 
         <div className="url-input-box">
-          <Lock className="lock-icon" size={12} />
+          <Lock className="lock-icon" size={11} />
           <span className="url-text">{previewUrl || 'http://localhost/preview'}</span>
-          <button 
-            onClick={handleCopyUrl} 
-            style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex' }}
+          <button
+            onClick={handleCopyUrl}
+            className="copy-url-btn"
             title="Copy Preview URL"
+            aria-label="Copy Preview URL"
           >
-            {copied ? <Check size={13} color="#10b981" /> : <Copy size={13} />}
+            {copied ? <Check size={12} color="var(--thread-sage)" /> : <Copy size={12} />}
           </button>
         </div>
 
         <div className="viewport-controls">
-          <button 
+          <button
             className={`vp-btn ${viewport === 'desktop' ? 'active' : ''}`}
             onClick={() => setViewport('desktop')}
             title="Desktop View (Full Width)"
           >
-            <Monitor size={14} />
+            <Monitor size={13} />
           </button>
-          <button 
+          <button
             className={`vp-btn ${viewport === 'tablet' ? 'active' : ''}`}
             onClick={() => setViewport('tablet')}
             title="Tablet View (768px)"
           >
-            <Tablet size={14} />
+            <Tablet size={13} />
           </button>
-          <button 
+          <button
             className={`vp-btn ${viewport === 'mobile' ? 'active' : ''}`}
             onClick={() => setViewport('mobile')}
             title="Mobile View (375px)"
           >
-            <Smartphone size={14} />
+            <Smartphone size={13} />
           </button>
         </div>
       </div>
@@ -89,8 +81,10 @@ export default function PreviewPanel({ previewUrl }) {
           />
         ) : (
           <div className="iframe-placeholder">
-            <RefreshCw className="spin-icon" size={28} />
-            <p>Connecting to Sandbox Preview Stream...</p>
+            <div className="thread-arc-spinner">
+              <ThreadLine variant="knot" active={true} color="var(--thread-weld)" width={28} height={28} />
+            </div>
+            <p className="placeholder-copy">Waiting on the sandbox preview stream…</p>
           </div>
         )}
       </div>

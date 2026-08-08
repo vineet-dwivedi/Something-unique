@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import ChatPanel from './components/ChatPanel';
@@ -6,22 +6,27 @@ import FileExplorer from './components/FileExplorer';
 import CodeEditor from './components/CodeEditor';
 import PreviewPanel from './components/PreviewPanel';
 import TerminalPanel from './components/TerminalPanel';
+import ThreadLine from './components/ThreadLine';
 import {
   createProject,
   startSandbox,
   listFiles,
   readFile,
   updateFile,
-  invokeAiStream
+  invokeAiStream,
+  fetchCurrentUser,
+  logoutUser,
+  getGoogleLoginUrl
 } from './services/api';
 import { MessageSquare, FolderTree } from 'lucide-react';
 
-// ─── Theme helpers ────────────────────────────────────────────
 function getInitialTheme() {
   try {
     const saved = localStorage.getItem('knit-theme');
     if (saved === 'dark' || saved === 'light') return saved;
-  } catch {}
+  } catch {
+    /* ignore localStorage error */
+  }
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
@@ -30,25 +35,51 @@ function applyTheme(theme) {
 }
 
 export default function App() {
+  // ── Auth State ─────────────────────────────────────────────
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    fetchCurrentUser()
+      .then((res) => {
+        if (res?.authenticated && res?.user) {
+          setUser(res.user);
+        } else {
+          setUser(null);
+        }
+      })
+      .catch((err) => console.warn('Auth status check error:', err));
+  }, []);
+
+  const handleLogin = () => {
+    window.location.href = getGoogleLoginUrl();
+  };
+
+  const handleLogout = async () => {
+    await logoutUser();
+    setUser(null);
+  };
+
   // ── Theme ──────────────────────────────────────────────────
   const [theme, setTheme] = useState(getInitialTheme);
 
   useEffect(() => {
     applyTheme(theme);
-    try { localStorage.setItem('knit-theme', theme); } catch {}
+    try {
+      localStorage.setItem('knit-theme', theme);
+    } catch {
+      /* ignore localStorage error */
+    }
   }, [theme]);
 
   const handleToggleTheme = (event) => {
-    // Fallback if browser doesn't support View Transitions or if triggered without coordinate event
     if (!document.startViewTransition) {
       setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
       return;
     }
 
-    // Capture click coordinates or default to center of the viewport
     const x = event?.clientX ?? window.innerWidth / 2;
     const y = event?.clientY ?? window.innerHeight / 2;
-    
+
     const endRadius = Math.hypot(
       Math.max(x, window.innerWidth - x),
       Math.max(y, window.innerHeight - y)
@@ -81,7 +112,6 @@ export default function App() {
     });
   };
 
-
   // ── Sandbox state ─────────────────────────────────────────
   const [sandboxData, setSandboxData] = useState(null);
   const [loadingSandbox, setLoadingSandbox] = useState(false);
@@ -104,16 +134,13 @@ export default function App() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [streamLogs, setStreamLogs] = useState([]);
   const [currentLog, setCurrentLog] = useState('');
-  const finalBufferRef = useRef(''); // accumulates all 'final' SSE chunks
+  const finalBufferRef = useRef('');
 
   // ── Sandbox handlers ─────────────────────────────────────
   const handleStartSandbox = async (projectTitle = 'My Project') => {
     setLoadingSandbox(true);
     try {
-      // Step 1: create the project record (protected route — cookie sent via credentials: include)
       const { project } = await createProject(projectTitle);
-
-      // Step 2: spin up the sandbox pod using the returned project _id
       const data = await startSandbox(project._id);
       setSandboxData(data);
       setMessages([
@@ -134,7 +161,7 @@ export default function App() {
   };
 
   const handleNewSandbox = () => {
-    if (window.confirm('Start a fresh sandbox? Your current session will end.')) {
+    if (window.confirm('Start a new sandbox? This one will be discarded.')) {
       setSandboxData(null);
       setFileList([]);
       setOpenTabs([]);
@@ -208,11 +235,9 @@ export default function App() {
         setCurrentLog(logText);
       },
       onFinal: (finalText) => {
-        // Accumulate — the server may fire multiple 'final' events for one response
         finalBufferRef.current += (finalBufferRef.current ? '\n' : '') + finalText;
       },
       onDone: async () => {
-        // Flush the buffer as one single AI message bubble
         const fullText = finalBufferRef.current.trim();
         finalBufferRef.current = '';
         if (fullText) {
@@ -242,10 +267,12 @@ export default function App() {
   };
 
   // ── Render ────────────────────────────────────────────────
-
   if (!sandboxData) {
     return (
       <Hero
+        user={user}
+        onLogin={handleLogin}
+        onLogout={handleLogout}
         onStartSandbox={handleStartSandbox}
         loading={loadingSandbox}
         theme={theme}
@@ -257,6 +284,9 @@ export default function App() {
   return (
     <div className="app-container">
       <Header
+        user={user}
+        onLogin={handleLogin}
+        onLogout={handleLogout}
         sandboxData={sandboxData}
         layoutMode={layoutMode}
         setLayoutMode={setLayoutMode}
@@ -271,20 +301,29 @@ export default function App() {
         {/* Left Sidebar */}
         <aside className="left-sidebar">
           <div className="sidebar-tabs">
-            <button
-              className={`tab-item ${sidebarTab === 'chat' ? 'active' : ''}`}
-              onClick={() => setSidebarTab('chat')}
-            >
-              <MessageSquare size={14} />
-              <span>AI Prompt</span>
-            </button>
-            <button
-              className={`tab-item ${sidebarTab === 'files' ? 'active' : ''}`}
-              onClick={() => setSidebarTab('files')}
-            >
-              <FolderTree size={14} />
-              <span>Explorer</span>
-            </button>
+            {[
+              { id: 'chat', label: 'AI Prompt', icon: <MessageSquare size={13} /> },
+              { id: 'files', label: 'Explorer', icon: <FolderTree size={13} /> },
+            ].map(({ id, label, icon }) => {
+              const isActive = sidebarTab === id;
+              return (
+                <button
+                  key={id}
+                  className={`tab-item ${isActive ? 'active' : ''}`}
+                  onClick={() => setSidebarTab(id)}
+                >
+                  {icon}
+                  <span>{label}</span>
+                  {isActive && (
+                    <ThreadLine
+                      variant="sliding"
+                      color="var(--thread-madder)"
+                      className="sidebar-tab-thread"
+                    />
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           <div className="sidebar-content">
@@ -307,7 +346,7 @@ export default function App() {
           </div>
         </aside>
 
-        {/* Main Content */}
+        {/* Main Content Workspace Area */}
         <main className="content-area">
           <div className="split-container">
             <div className={`editor-section ${layoutMode === 'preview' ? 'hidden' : ''}`}>

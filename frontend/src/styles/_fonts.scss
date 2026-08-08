@@ -1,0 +1,23 @@
+// ─────────────────────────────────────────────────────────────
+// Font Declarations — Commit Mono + System Fallbacks
+// ─────────────────────────────────────────────────────────────
+
+@font-face {
+  font-family: 'Commit Mono';
+  src: url('/fonts/CommitMono-Regular.woff2') format('woff2'),
+       local('Commit Mono'),
+       local('CommitMono-Regular');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Commit Mono';
+  src: url('/fonts/CommitMono-Italic.woff2') format('woff2'),
+       local('Commit Mono Italic'),
+       local('CommitMono-Italic');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}

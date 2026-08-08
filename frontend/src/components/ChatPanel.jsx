@@ -1,10 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles, User, CheckCircle2, Loader2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Send } from 'lucide-react';
+import ThreadLine from './ThreadLine';
 
 // ─── Lightweight inline markdown renderer ────────────────────────────────────
-// Handles: ### headings, **bold**, `inline code`, file paths, plain text
 function renderInline(text) {
-  // Split on bold (**...**) and inline code (`...`)
   const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
   return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
@@ -25,28 +24,24 @@ function MarkdownMessage({ text }) {
   while (i < lines.length) {
     const line = lines[i];
 
-    // H3 heading
     if (line.startsWith('### ')) {
       elements.push(<h3 key={i} className="md-h3">{renderInline(line.slice(4))}</h3>);
       i++;
       continue;
     }
 
-    // H2 heading
     if (line.startsWith('## ')) {
       elements.push(<h2 key={i} className="md-h2">{renderInline(line.slice(3))}</h2>);
       i++;
       continue;
     }
 
-    // H1 heading
     if (line.startsWith('# ')) {
       elements.push(<h1 key={i} className="md-h1">{renderInline(line.slice(2))}</h1>);
       i++;
       continue;
     }
 
-    // Numbered list item  (e.g. "1. something")
     if (/^\d+\.\s/.test(line)) {
       const listItems = [];
       while (i < lines.length && /^\d+\.\s/.test(lines[i])) {
@@ -57,7 +52,6 @@ function MarkdownMessage({ text }) {
       continue;
     }
 
-    // Bullet list item  (- or *)
     if (/^[-*]\s/.test(line)) {
       const listItems = [];
       while (i < lines.length && /^[-*]\s/.test(lines[i])) {
@@ -68,14 +62,12 @@ function MarkdownMessage({ text }) {
       continue;
     }
 
-    // Blank line — spacer
     if (line.trim() === '') {
       elements.push(<div key={i} className="md-spacer" />);
       i++;
       continue;
     }
 
-    // Plain paragraph
     elements.push(<p key={i} className="md-p">{renderInline(line)}</p>);
     i++;
   }
@@ -92,6 +84,7 @@ export default function ChatPanel({
   currentLog,
 }) {
   const [inputPrompt, setInputPrompt] = useState('');
+  const [hoveredChip, setHoveredChip] = useState(null);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -114,51 +107,71 @@ export default function ChatPanel({
     onSendMessage(suggestion);
   };
 
+  const totalSteps = streamLogs.length + (currentLog ? 1 : 0);
+  const railProgress = totalSteps > 0 ? Math.min(1, streamLogs.length / (totalSteps || 1)) : 0;
+
+  const suggestions = [
+    'Add light and dark theme mode with animations',
+    'Improve layout responsiveness and mobile accessibility',
+    'Add interactive states and subtle hover animations',
+  ];
+
   return (
     <div className="chat-panel">
       <div className="chat-messages">
         {messages.map((msg, index) => (
-          <div key={index} className={`message-item ${msg.sender === 'user' ? 'user' : 'ai'}`}>
+          <div
+            key={index}
+            className={`message-item ${msg.sender === 'user' ? 'sender-user' : 'sender-knit'}`}
+          >
             <div className="message-header">
-              {msg.sender === 'user'
-                ? <User size={12} className="msg-icon" />
-                : <Sparkles size={12} className="msg-icon" />}
-              <span className="sender-name">{msg.sender === 'user' ? 'You' : 'Assistant'}</span>
+              <span className="mono-sender-label">
+                [ {msg.sender === 'user' ? 'YOU' : 'KNIT'} ]
+              </span>
             </div>
 
             <div className="message-content">
-              {msg.sender === 'ai'
-                ? <MarkdownMessage text={msg.text} />
-                : <p className="md-p">{msg.text}</p>
-              }
+              {msg.sender === 'ai' ? (
+                <MarkdownMessage text={msg.text} />
+              ) : (
+                <p className="md-p">{msg.text}</p>
+              )}
             </div>
           </div>
         ))}
 
-        {/* SSE Stream Logs while AI is generating */}
+        {/* Live SSE Stream Log Rail Panel */}
         {isGenerating && (
           <div className="sse-stream-logs">
             <div className="stream-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                <div className="spinner" />
-                <span>Agent working…</span>
-              </div>
-              <span className="badge-glow" style={{ fontSize: '0.65rem' }}>Live</span>
+              <span className="mono-stream-title">[ BUILD LOG — LIVE STREAM ]</span>
+              <span className="mono-live-tag">LIVE</span>
             </div>
 
-            {streamLogs.map((log, idx) => (
-              <div key={idx} className="stream-log-line">
-                <CheckCircle2 className="log-icon" size={10} />
-                <span>{log}</span>
-              </div>
-            ))}
+            <div className="stream-rail-wrapper">
+              <ThreadLine
+                variant="rail"
+                color="var(--thread-weld)"
+                progress={railProgress}
+                className="log-rail"
+              />
 
-            {currentLog && (
-              <div className="stream-log-line" style={{ color: 'var(--accent)' }}>
-                <Loader2 className="spin-icon" size={10} />
-                <span>{currentLog}</span>
+              <div className="stream-log-list">
+                {streamLogs.map((log, idx) => (
+                  <div key={idx} className="stream-log-line is-done">
+                    <ThreadLine variant="knot" active={true} color="var(--thread-sage)" width={12} height={12} />
+                    <span className="log-text">{log}</span>
+                  </div>
+                ))}
+
+                {currentLog && (
+                  <div className="stream-log-line is-in-progress">
+                    <ThreadLine variant="knot" active={false} color="var(--thread-weld)" width={12} height={12} />
+                    <span className="log-text building-text">{currentLog}</span>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         )}
 
@@ -171,7 +184,7 @@ export default function ChatPanel({
           <textarea
             value={inputPrompt}
             onChange={(e) => setInputPrompt(e.target.value)}
-            placeholder="ask ai to build…"
+            placeholder="Describe what you want to build in plain English..."
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -180,25 +193,43 @@ export default function ChatPanel({
             }}
             disabled={isGenerating}
           />
+
           <button
             type="submit"
             className="send-btn"
             disabled={isGenerating || !inputPrompt.trim()}
+            title="Send prompt"
           >
-            {isGenerating ? <Loader2 className="spin-icon" size={15} /> : <Send size={15} />}
+            {isGenerating ? (
+              <>
+                <span className="mono-sending">KNITTING</span>
+                <ThreadLine variant="border-stitch" color="var(--thread-weld)" />
+              </>
+            ) : (
+              <Send size={14} />
+            )}
           </button>
         </form>
 
         <div className="prompt-suggestions">
-          <button className="chip" onClick={() => handleChipClick('Add light and dark theme mode with animations')}>
-            theme modes
-          </button>
-          <button className="chip" onClick={() => handleChipClick('Improve layout responsiveness and mobile accessibility')}>
-            responsive layout
-          </button>
-          <button className="chip" onClick={() => handleChipClick('Add interactive states and subtle hover animations')}>
-            interactive states
-          </button>
+          {suggestions.map((suggestion, idx) => (
+            <button
+              key={idx}
+              className="suggestion-tag"
+              onClick={() => handleChipClick(suggestion)}
+              onMouseEnter={() => setHoveredChip(idx)}
+              onMouseLeave={() => setHoveredChip(null)}
+            >
+              <span className="chip-label">{suggestion}</span>
+              {hoveredChip === idx && (
+                <ThreadLine
+                  variant="underline"
+                  color="var(--thread-madder)"
+                  className="chip-underline"
+                />
+              )}
+            </button>
+          ))}
         </div>
       </div>
     </div>
